@@ -111,11 +111,11 @@ const QuickFiltersContainer = styled.div`
   gap: 0.5rem;
 `;
 
-const QuickFilterButton = styled.button<{ active?: boolean }>`
+const QuickFilterButton = styled.button<{ $active?: boolean }>`
   padding: 0.5rem 0.75rem;
-  border: 1px solid ${props => props.active ? '#ed7734' : '#d6d3d1'};
-  background: ${props => props.active ? '#ed773410' : 'white'};
-  color: ${props => props.active ? '#ed7734' : '#44403c'};
+  border: 1px solid ${props => props.$active ? '#ed7734' : '#d6d3d1'};
+  background: ${props => props.$active ? '#ed773410' : 'white'};
+  color: ${props => props.$active ? '#ed7734' : '#44403c'};
   border-radius: 0.5rem;
   font-size: 0.875rem;
   cursor: pointer;
@@ -535,7 +535,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onExportCSV, onRefresh = 
               <QuickFilterButton
                 key={filter}
                 onClick={() => setQuickFilter(filter === quickFilter ? '' : filter)}
-                active={quickFilter === filter}
+                $active={quickFilter === filter}
               >
                 {filter}
               </QuickFilterButton>

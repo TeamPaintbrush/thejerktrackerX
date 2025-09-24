@@ -28,6 +28,7 @@ import { Container, Button, Heading, Text, Flex, Grid, Card } from '../../styles
 import OrderForm from '../../components/OrderForm';
 import QRCodeDisplay from '../../components/QRCodeDisplay';
 import OrderList from '../../components/OrderList';
+import { PRESET_FOOD_ITEMS, FOOD_CATEGORIES, formatPrice } from '../../lib/foodItems';
 
 const DashboardContainer = styled.div`
   min-height: 100vh;
@@ -555,6 +556,7 @@ export default function AdminPage() {
     { id: 'dashboard', icon: <BarChart3 size={20} />, label: 'Dashboard' },
     { id: 'orders', icon: <Package size={20} />, label: 'Orders' },
     { id: 'create', icon: <PlusCircle size={20} />, label: 'Create Order' },
+    { id: 'menu', icon: <Menu size={20} />, label: 'Menu Items' },
     { id: 'qr', icon: <QrCode size={20} />, label: 'QR Codes' },
     { id: 'settings', icon: <Settings size={20} />, label: 'Settings' },
   ];
@@ -824,6 +826,83 @@ export default function AdminPage() {
                 <Text size="base" color="#78716c">
                   {!isClient ? 'Loading...' : 'No orders found. Create an order first to generate a QR code.'}
                 </Text>
+              </SectionCard>
+            </motion.div>
+          )}
+
+          {activeTab === 'menu' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <SectionCard>
+                <Heading as="h3" size="xl" weight="bold" mb="1.5rem" color="#1c1917">Menu Items</Heading>
+                <Text size="base" color="#78716c" mb="1.5rem">
+                  Browse and manage your restaurant's menu items. Click on any item to edit its details.
+                </Text>
+                
+                {/* Categories */}
+                {FOOD_CATEGORIES.map((category) => {
+                  const categoryItems = PRESET_FOOD_ITEMS.filter(item => item.category === category.id);
+                  
+                  return (
+                    <div key={category.id} style={{ marginBottom: '2rem' }}>
+                      <Heading as="h4" size="lg" weight="semibold" mb="1rem" color="#44403c">
+                        {category.icon} {category.name}
+                      </Heading>
+                      <Grid gap="1rem" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+                        {categoryItems.map((item) => (
+                          <Card key={item.id} style={{ padding: '1rem', border: '1px solid #e7e5e4' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                              <div>
+                                <Text size="base" weight="semibold" color="#1c1917">{item.name}</Text>
+                                {item.popular && (
+                                  <span style={{ 
+                                    background: '#ed7734', 
+                                    color: 'white', 
+                                    padding: '0.125rem 0.5rem', 
+                                    borderRadius: '0.25rem', 
+                                    fontSize: '0.75rem',
+                                    marginLeft: '0.5rem'
+                                  }}>
+                                    Popular
+                                  </span>
+                                )}
+                              </div>
+                              <Text size="base" weight="bold" color="#ed7734">
+                                {formatPrice(item.price)}
+                              </Text>
+                            </div>
+                            <div style={{ marginBottom: '0.75rem' }}>
+                              <Text size="sm" color="#78716c">
+                                {item.description}
+                              </Text>
+                            </div>
+                            <Flex align="center" gap="1rem">
+                              {item.preparationTime && (
+                                <Text size="xs" color="#a8a29e">
+                                  <Clock size={12} style={{ display: 'inline', marginRight: '0.25rem' }} />
+                                  {item.preparationTime}m
+                                </Text>
+                              )}
+                              {item.spiceLevel && (
+                                <Text size="xs" color="#a8a29e">
+                                  🌶️ {item.spiceLevel}
+                                </Text>
+                              )}
+                              {item.allergens && item.allergens.length > 0 && (
+                                <Text size="xs" color="#a8a29e">
+                                  Allergens: {item.allergens.join(', ')}
+                                </Text>
+                              )}
+                            </Flex>
+                          </Card>
+                        ))}
+                      </Grid>
+                    </div>
+                  );
+                })}
               </SectionCard>
             </motion.div>
           )}
