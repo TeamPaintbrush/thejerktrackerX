@@ -132,7 +132,9 @@ const Header: React.FC = () => {
       <HeaderWrapper>
         <HeaderContent>
           <HeaderInfo>
-            <HeaderTitle>Admin Dashboard</HeaderTitle>
+            <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <HeaderTitle style={{ cursor: 'pointer' }}>Admin Dashboard</HeaderTitle>
+            </Link>
             <HeaderSubtitle>Manage orders and track pickups</HeaderSubtitle>
           </HeaderInfo>
           <HeaderNav role="navigation" aria-label="Admin actions">

@@ -391,10 +391,12 @@ const QRTrackingPage: React.FC = () => {
       <PageHeader>
         <Container>
           <HeaderContent>
-            <HeaderTitle>
-              <QrCode size={32} />
-              <h1>QR Codes Tracking</h1>
-            </HeaderTitle>
+            <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <HeaderTitle style={{ cursor: 'pointer' }}>
+                <QrCode size={32} />
+                <h1>QR Codes Tracking</h1>
+              </HeaderTitle>
+            </Link>
             <Button onClick={loadOrders}>
               Refresh Data
             </Button>
