@@ -1,5 +1,15 @@
-// Client-side order service using localStorage
-// Perfect for GitHub Pages static hosting without backend requirements
+// Hybrid order service using AWS DynamoDB with localStorage fallback
+// Works both locally and on GitHub Pages with proper AWS configuration
+
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { 
+  DynamoDBDocumentClient, 
+  PutCommand, 
+  GetCommand, 
+  ScanCommand, 
+  UpdateCommand 
+} from '@aws-sdk/lib-dynamodb';
+import { fromCognitoIdentityPool } from '@aws-sdk/credential-providers';
 
 export interface Order {
   id: string;
@@ -15,7 +25,113 @@ export interface Order {
 }
 
 export class DynamoDBService {
-  // Storage key with environment prefix for GitHub Pages
+  private static client: DynamoDBDocumentClient | null = null;
+  private static fallbackMode = false;
+
+  // AWS DynamoDB Configuration
+  private static getConfig() {
+    return {
+      region: process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1',
+      tableName: process.env.NEXT_PUBLIC_DYNAMODB_TABLE_NAME || 'jerktracker-orders',
+      enableDynamoDB: process.env.NEXT_PUBLIC_ENABLE_DYNAMODB !== 'false',
+      fallbackMode: process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true'
+    };
+  }
+
+  // Initialize DynamoDB Client
+  private static async initClient(): Promise<DynamoDBDocumentClient | null> {
+    if (this.client) return this.client;
+    
+    const config = this.getConfig();
+    
+    if (!config.enableDynamoDB || config.fallbackMode) {
+      console.log('DynamoDB disabled or in fallback mode, using localStorage');
+      this.fallbackMode = true;
+      return null;
+    }
+
+    try {
+      let dynamoClient: DynamoDBClient;
+
+      if (typeof window !== 'undefined') {
+        // Browser environment - use Cognito Identity Pool for unauthenticated access
+        // You'll need to set up a Cognito Identity Pool in AWS
+        const cognitoIdentityPoolId = process.env.NEXT_PUBLIC_COGNITO_IDENTITY_POOL_ID;
+        
+        if (cognitoIdentityPoolId) {
+          dynamoClient = new DynamoDBClient({
+            region: config.region,
+            credentials: fromCognitoIdentityPool({
+              identityPoolId: cognitoIdentityPoolId,
+              clientConfig: { region: config.region }
+            })
+          });
+        } else {
+          console.warn('No Cognito Identity Pool configured, falling back to localStorage');
+          this.fallbackMode = true;
+          return null;
+        }
+      } else {
+        // Server environment - use AWS credentials from environment
+        dynamoClient = new DynamoDBClient({
+          region: config.region,
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+          }
+        });
+      }
+
+      this.client = DynamoDBDocumentClient.from(dynamoClient);
+      
+      // Test the connection
+      await this.testConnection();
+      
+      console.log('DynamoDB client initialized successfully');
+      return this.client;
+    } catch (error) {
+      console.error('Failed to initialize DynamoDB client:', error);
+      this.fallbackMode = true;
+      return null;
+    }
+  }
+
+  // Test DynamoDB connection
+  private static async testConnection(): Promise<boolean> {
+    try {
+      if (!this.client) return false;
+      
+      const config = this.getConfig();
+      const testId = 'connection-test-' + Date.now();
+      
+      // Try to put a test item
+      await this.client.send(new PutCommand({
+        TableName: config.tableName,
+        Item: {
+          id: testId,
+          orderNumber: 'TEST',
+          customerName: 'Connection Test',
+          customerEmail: 'test@test.com',
+          orderDetails: 'Connection test order',
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        }
+      }));
+
+      // Clean up test item
+      await this.client.send(new GetCommand({
+        TableName: config.tableName,
+        Key: { id: testId }
+      }));
+
+      return true;
+    } catch (error) {
+      console.error('DynamoDB connection test failed:', error);
+      return false;
+    }
+  }
+
+  // Storage key with environment prefix for localStorage fallback
   private static getStorageKey(): string {
     const baseKey = 'jerktracker_orders';
     const environment = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
@@ -89,22 +205,227 @@ export class DynamoDBService {
 
   // Create a new order
   static async createOrder(order: Omit<Order, 'id' | 'createdAt'>): Promise<Order> {
-    return this.createOrderLocal(order);
+    const client = await this.initClient();
+    
+    if (client && !this.fallbackMode) {
+      return this.createOrderDynamoDB(order, client);
+    } else {
+      console.log('Using localStorage fallback for createOrder');
+      return this.createOrderLocal(order);
+    }
   }
 
   // Get all orders
   static async getAllOrders(): Promise<Order[]> {
-    return this.getAllOrdersLocal();
+    const client = await this.initClient();
+    
+    if (client && !this.fallbackMode) {
+      return this.getAllOrdersDynamoDB(client);
+    } else {
+      console.log('Using localStorage fallback for getAllOrders');
+      return this.getAllOrdersLocal();
+    }
   }
 
   // Get order by ID
   static async getOrderById(id: string): Promise<Order | null> {
-    return this.getOrderByIdLocal(id);
+    const client = await this.initClient();
+    
+    if (client && !this.fallbackMode) {
+      return this.getOrderByIdDynamoDB(id, client);
+    } else {
+      console.log('Using localStorage fallback for getOrderById');
+      return this.getOrderByIdLocal(id);
+    }
   }
 
   // Update order
   static async updateOrder(id: string, updates: Partial<Order>): Promise<Order | null> {
-    return this.updateOrderLocal(id, updates);
+    const client = await this.initClient();
+    
+    if (client && !this.fallbackMode) {
+      return this.updateOrderDynamoDB(id, updates, client);
+    } else {
+      console.log('Using localStorage fallback for updateOrder');
+      return this.updateOrderLocal(id, updates);
+    }
+  }
+
+  // Check service status
+  static async getServiceStatus(): Promise<{
+    dynamoDBAvailable: boolean;
+    fallbackMode: boolean;
+    storageType: 'dynamodb' | 'localStorage' | 'sessionStorage' | 'memory';
+    region?: string;
+    tableName?: string;
+  }> {
+    const config = this.getConfig();
+    const client = await this.initClient();
+    const storage = this.getStorage();
+    
+    let storageType: 'dynamodb' | 'localStorage' | 'sessionStorage' | 'memory' = 'memory';
+    
+    if (client && !this.fallbackMode) {
+      storageType = 'dynamodb';
+    } else if (storage.available) {
+      storageType = typeof localStorage !== 'undefined' ? 'localStorage' : 'sessionStorage';
+    }
+    
+    return {
+      dynamoDBAvailable: !!client && !this.fallbackMode,
+      fallbackMode: this.fallbackMode,
+      storageType,
+      region: config.region,
+      tableName: config.tableName
+    };
+  }
+
+  // DynamoDB Methods
+  private static async createOrderDynamoDB(order: Omit<Order, 'id' | 'createdAt'>, client: DynamoDBDocumentClient): Promise<Order> {
+    const config = this.getConfig();
+    const newOrder: Order = {
+      ...order,
+      id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
+      createdAt: new Date(),
+    };
+
+    try {
+      const item = {
+        ...newOrder,
+        createdAt: newOrder.createdAt.toISOString(),
+        pickedUpAt: newOrder.pickedUpAt?.toISOString()
+      };
+
+      await client.send(new PutCommand({
+        TableName: config.tableName,
+        Item: item
+      }));
+
+      console.log('Order created in DynamoDB:', newOrder.id);
+      
+      // Also store in localStorage as cache
+      this.createOrderLocal(newOrder);
+      
+      return newOrder;
+    } catch (error) {
+      console.error('Error creating order in DynamoDB:', error);
+      // Fallback to localStorage
+      return this.createOrderLocal(order);
+    }
+  }
+
+  private static async getAllOrdersDynamoDB(client: DynamoDBDocumentClient): Promise<Order[]> {
+    const config = this.getConfig();
+
+    try {
+      const result = await client.send(new ScanCommand({
+        TableName: config.tableName
+      }));
+
+      const orders = (result.Items || []).map(item => ({
+        ...item,
+        createdAt: new Date(item.createdAt),
+        pickedUpAt: item.pickedUpAt ? new Date(item.pickedUpAt) : undefined,
+      })) as Order[];
+
+      console.log(`Loaded ${orders.length} orders from DynamoDB`);
+      
+      // Cache in localStorage
+      const storage = this.getStorage();
+      if (storage.available) {
+        try {
+          storage.setItem(this.getStorageKey(), JSON.stringify(orders));
+        } catch (cacheError) {
+          console.warn('Failed to cache orders in localStorage:', cacheError);
+        }
+      }
+      
+      return orders;
+    } catch (error) {
+      console.error('Error fetching orders from DynamoDB:', error);
+      // Fallback to localStorage
+      return this.getAllOrdersLocal();
+    }
+  }
+
+  private static async getOrderByIdDynamoDB(id: string, client: DynamoDBDocumentClient): Promise<Order | null> {
+    const config = this.getConfig();
+
+    try {
+      const result = await client.send(new GetCommand({
+        TableName: config.tableName,
+        Key: { id }
+      }));
+
+      if (result.Item) {
+        const order = {
+          ...result.Item,
+          createdAt: new Date(result.Item.createdAt),
+          pickedUpAt: result.Item.pickedUpAt ? new Date(result.Item.pickedUpAt) : undefined,
+        } as Order;
+
+        console.log('Order found in DynamoDB:', order.id, order.orderNumber);
+        return order;
+      }
+
+      console.warn('Order not found in DynamoDB:', id);
+      return null;
+    } catch (error) {
+      console.error('Error fetching order from DynamoDB:', error);
+      // Fallback to localStorage
+      return this.getOrderByIdLocal(id);
+    }
+  }
+
+  private static async updateOrderDynamoDB(id: string, updates: Partial<Order>, client: DynamoDBDocumentClient): Promise<Order | null> {
+    const config = this.getConfig();
+
+    try {
+      // Add pickup timestamp if status is being updated to picked_up
+      if (updates.status === 'picked_up' && !updates.pickedUpAt) {
+        updates.pickedUpAt = new Date();
+      }
+
+      const updateExpression = Object.keys(updates)
+        .filter(key => key !== 'id' && key !== 'createdAt')
+        .map(key => `#${key} = :${key}`)
+        .join(', ');
+
+      const expressionAttributeNames = Object.keys(updates)
+        .filter(key => key !== 'id' && key !== 'createdAt')
+        .reduce((acc, key) => ({ ...acc, [`#${key}`]: key }), {});
+
+      const expressionAttributeValues = Object.keys(updates)
+        .filter(key => key !== 'id' && key !== 'createdAt')
+        .reduce((acc, key) => {
+          const value = updates[key as keyof Order];
+          return {
+            ...acc,
+            [`:${key}`]: value instanceof Date ? value.toISOString() : value
+          };
+        }, {});
+
+      await client.send(new UpdateCommand({
+        TableName: config.tableName,
+        Key: { id },
+        UpdateExpression: `SET ${updateExpression}`,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+        ReturnValues: 'ALL_NEW'
+      }));
+
+      console.log('Order updated in DynamoDB:', id);
+      
+      // Also update localStorage cache
+      this.updateOrderLocal(id, updates);
+      
+      // Fetch the updated order
+      return this.getOrderByIdDynamoDB(id, client);
+    } catch (error) {
+      console.error('Error updating order in DynamoDB:', error);
+      // Fallback to localStorage
+      return this.updateOrderLocal(id, updates);
+    }
   }
 
   // Test storage functionality
@@ -146,20 +467,41 @@ export class DynamoDBService {
   }
 
   // Local storage methods with enhanced error handling
-  private static createOrderLocal(order: Omit<Order, 'id' | 'createdAt'>): Order {
-    const newOrder: Order = {
-      ...order,
-      id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
-      createdAt: new Date(),
-    };
+  private static createOrderLocal(order: Omit<Order, 'id' | 'createdAt'> | Order): Order {
+    let newOrder: Order;
+    
+    if ('id' in order && 'createdAt' in order) {
+      // If it's already a complete Order object, use it as is
+      newOrder = order as Order;
+    } else {
+      // Create new order with generated ID and timestamp
+      newOrder = {
+        ...order,
+        id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
+        createdAt: new Date(),
+      };
+    }
 
     const storage = this.getStorage();
     const orders = this.getAllOrdersLocal();
-    orders.push(newOrder);
+    
+    // Check if order already exists (for caching from DynamoDB)
+    const existingIndex = orders.findIndex(o => o.id === newOrder.id);
+    if (existingIndex >= 0) {
+      orders[existingIndex] = newOrder;
+    } else {
+      orders.push(newOrder);
+    }
     
     try {
-      storage.setItem(this.getStorageKey(), JSON.stringify(orders));
-      console.log('Order saved successfully:', newOrder.id);
+      const serializedOrders = orders.map(o => ({
+        ...o,
+        createdAt: o.createdAt.toISOString(),
+        pickedUpAt: o.pickedUpAt?.toISOString()
+      }));
+      
+      storage.setItem(this.getStorageKey(), JSON.stringify(serializedOrders));
+      console.log('Order saved to localStorage:', newOrder.id);
     } catch (error) {
       console.error('Error saving order to storage:', error);
       // Still return the order even if storage fails

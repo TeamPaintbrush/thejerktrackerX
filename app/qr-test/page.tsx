@@ -230,6 +230,13 @@ export default function QRTestPage() {
   });
   const [testOrder, setTestOrder] = useState<Order | null>(null);
   const [currentUrl, setCurrentUrl] = useState('');
+  const [serviceStatus, setServiceStatus] = useState<{
+    dynamoDBAvailable: boolean;
+    fallbackMode: boolean;
+    storageType: string;
+    region?: string;
+    tableName?: string;
+  } | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -242,7 +249,18 @@ export default function QRTestPage() {
     if (!isClient) return;
     
     runTests();
+    loadServiceStatus();
   }, [isClient]);
+
+  const loadServiceStatus = async () => {
+    try {
+      const status = await DynamoDBService.getServiceStatus();
+      setServiceStatus(status);
+      console.log('Service status:', status);
+    } catch (error) {
+      console.error('Failed to load service status:', error);
+    }
+  };
 
   const runTests = async () => {
     const results: TestResults = {
@@ -362,9 +380,25 @@ export default function QRTestPage() {
             Comprehensive testing of the QR Code workflow on GitHub Pages deployment
           </Subtitle>
           <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
-            <strong>Current Environment:</strong> {process.env.NODE_ENV === 'production' ? 'Production (GitHub Pages)' : 'Development'}
+            <strong>Environment:</strong> {process.env.NODE_ENV === 'production' ? 'Production (GitHub Pages)' : 'Development'}
             <br />
             <strong>Current URL:</strong> {currentUrl}
+            <br />
+            <strong>Storage Type:</strong> {serviceStatus?.storageType || 'Loading...'}
+            {serviceStatus?.dynamoDBAvailable && (
+              <>
+                <br />
+                <strong>DynamoDB:</strong> ✅ Connected ({serviceStatus.region})
+                <br />
+                <strong>Table:</strong> {serviceStatus.tableName}
+              </>
+            )}
+            {serviceStatus?.fallbackMode && (
+              <>
+                <br />
+                <strong>Mode:</strong> ⚠️ Fallback (localStorage)
+              </>
+            )}
           </div>
         </Header>
 
