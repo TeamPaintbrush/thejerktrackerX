@@ -507,6 +507,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
         ...order,
         status: 'delivered' as const,
         deliveredAt: new Date(),
+        deliveryConfirmationMethod: 'manual' as const,
       };
 
       // Update in DynamoDB
@@ -514,6 +515,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
         await DynamoDBService.updateOrder(orderId, {
           status: 'delivered',
           deliveredAt: new Date(),
+          deliveryConfirmationMethod: 'manual'
         });
       } catch (dbError) {
         console.error('Failed to update delivery status:', dbError);

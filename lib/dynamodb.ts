@@ -23,6 +23,7 @@ export interface Order {
   deliveredAt?: Date;
   driverName?: string;
   driverCompany?: string;
+  deliveryConfirmationMethod?: 'manual' | 'auto-timeout';
 }
 
 export class DynamoDBService {
@@ -581,5 +582,45 @@ export class DynamoDBService {
     }
     
     return orders[index];
+  }
+
+  // Auto-complete orders that have been picked up for more than 2 hours
+  static async autoCompleteOverdueOrders(): Promise<void> {
+    try {
+      const orders = await this.getAllOrders();
+      const now = new Date();
+      const twoHoursInMs = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+      
+      for (const order of orders) {
+        // Check if order is picked up but not delivered
+        if (order.status === 'picked_up' && order.pickedUpAt) {
+          const pickupTime = new Date(order.pickedUpAt);
+          const timeSincePickup = now.getTime() - pickupTime.getTime();
+          
+          // If more than 2 hours have passed since pickup, auto-complete
+          if (timeSincePickup > twoHoursInMs) {
+            await this.updateOrder(order.id, {
+              status: 'delivered',
+              deliveredAt: now,
+              deliveryConfirmationMethod: 'auto-timeout'
+            });
+            console.log(`Auto-completed order ${order.orderNumber} after ${Math.round(timeSincePickup / (60 * 1000))} minutes`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in auto-complete process:', error);
+    }
+  }
+
+  // Start auto-complete timer (runs every 15 minutes)
+  static startAutoCompleteTimer(): void {
+    // Run immediately
+    this.autoCompleteOverdueOrders();
+    
+    // Then run every 15 minutes
+    setInterval(() => {
+      this.autoCompleteOverdueOrders();
+    }, 15 * 60 * 1000); // 15 minutes
   }
 }

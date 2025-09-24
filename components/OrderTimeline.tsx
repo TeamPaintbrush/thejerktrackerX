@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle, Clock, Package, Truck, User } from 'lucide-react';
+import { CheckCircle, Clock, Package, Truck, User, AlertCircle } from 'lucide-react';
 import styled from 'styled-components';
 
 const TimelineContainer = styled.div`
@@ -126,6 +126,7 @@ interface Order {
   driverCompany?: string;
   pickedUpAt?: Date;
   deliveredAt?: Date;
+  deliveryConfirmationMethod?: 'manual' | 'auto-timeout';
 }
 
 interface OrderTimelineProps {
@@ -173,11 +174,18 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ order }) => {
     {
       id: 5,
       title: 'Order Delivered',
-      description: 'Order delivered to customer',
-      icon: CheckCircle,
+      description: order.deliveryConfirmationMethod === 'auto-timeout' 
+        ? 'Auto-completed after 2 hours (Less accurate, no actual delivery confirmation)'
+        : 'Order delivered to customer',
+      icon: order.deliveryConfirmationMethod === 'auto-timeout' ? AlertCircle : CheckCircle,
       completed: order.status === 'delivered',
       timestamp: order.deliveredAt,
-      details: order.status === 'delivered' ? 'Delivery confirmed' : 'Pending delivery'
+      details: order.status === 'delivered' 
+        ? (order.deliveryConfirmationMethod === 'auto-timeout' 
+           ? 'Auto-completed delivery' 
+           : 'Delivery confirmed')
+        : 'Pending delivery',
+      isAutoCompleted: order.deliveryConfirmationMethod === 'auto-timeout'
     }
   ];
 
@@ -208,7 +216,11 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ order }) => {
               <TimelineContent>
                 <TimelineIcon $completed={step.completed}>
                   {step.completed ? (
-                    <CheckCircle size={20} />
+                    step.id === 4 && order.deliveryConfirmationMethod === 'auto-timeout' ? (
+                      <Clock size={20} />
+                    ) : (
+                      <CheckCircle size={20} />
+                    )
                   ) : (
                     <Icon size={20} />
                   )}

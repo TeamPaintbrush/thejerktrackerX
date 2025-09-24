@@ -496,6 +496,9 @@ export default function AdminPage() {
       }
     };
     loadOrders();
+
+    // Start auto-complete timer for overdue orders
+    DynamoDBService.startAutoCompleteTimer();
   }, [isClient]);
 
   const handleOrderCreated = async (newOrder: Order) => {
