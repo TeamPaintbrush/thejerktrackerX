@@ -102,31 +102,24 @@ export class DynamoDBService {
       if (!this.client) return false;
       
       const config = this.getConfig();
-      const testId = 'connection-test-' + Date.now();
       
-      // Try to put a test item
-      await this.client.send(new PutCommand({
+      // Simple connection test - just scan the table
+      await this.client.send(new ScanCommand({
         TableName: config.tableName,
-        Item: {
-          id: testId,
-          orderNumber: 'TEST',
-          customerName: 'Connection Test',
-          customerEmail: 'test@test.com',
-          orderDetails: 'Connection test order',
-          status: 'pending',
-          createdAt: new Date().toISOString()
-        }
+        Limit: 1
       }));
 
-      // Clean up test item
-      await this.client.send(new GetCommand({
-        TableName: config.tableName,
-        Key: { id: testId }
-      }));
-
+      console.log('DynamoDB connection test successful');
       return true;
     } catch (error) {
       console.error('DynamoDB connection test failed:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      }
       return false;
     }
   }

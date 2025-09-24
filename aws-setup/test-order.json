@@ -1,0 +1,9 @@
+{
+  "id": {"S": "test-order-1727213700000"},
+  "orderNumber": {"S": "JT001"},
+  "customerName": {"S": "John Doe"},
+  "customerEmail": {"S": "john@example.com"},
+  "orderDetails": {"S": "2x Jerk Chicken Combo, 1x Rice & Peas"},
+  "status": {"S": "pending"},
+  "createdAt": {"S": "2025-09-24T21:15:00.000Z"}
+}

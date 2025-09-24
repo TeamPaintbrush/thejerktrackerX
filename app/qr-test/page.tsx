@@ -300,6 +300,7 @@ export default function QRTestPage() {
     }
 
     // Test 3: Order Creation
+    let createdOrder: Order | null = null;
     try {
       const newOrder: Omit<Order, 'id' | 'createdAt'> = {
         orderNumber: 'TEST' + Date.now(),
@@ -309,7 +310,7 @@ export default function QRTestPage() {
         status: 'pending'
       };
 
-      const createdOrder = await DynamoDBService.createOrder(newOrder);
+      createdOrder = await DynamoDBService.createOrder(newOrder);
       setTestOrder(createdOrder);
       results.orderCreation = 'success';
     } catch (e) {
@@ -318,13 +319,19 @@ export default function QRTestPage() {
 
     // Test 4: QR Generation
     try {
-      if (testOrder) {
-        const basePath = process.env.NODE_ENV === 'production' ? '/thejerktrackerX' : '';
-        const orderUrl = `${window.location.origin}${basePath}/orders/${testOrder.id}`;
+      if (createdOrder) {
+        // Detect production by checking hostname
+        const isProduction = window.location.hostname.includes('github.io');
+        const basePath = isProduction ? '/thejerktrackerX' : '';
+        const orderUrl = `${window.location.origin}${basePath}/orders/${createdOrder.id}`;
         
-        if (orderUrl.includes('/orders/') && testOrder.id) {
+        console.log('QR Generation test - URL:', orderUrl, 'Production:', isProduction);
+        
+        if (orderUrl.includes('/orders/') && createdOrder.id) {
           results.qrGeneration = 'success';
         }
+      } else {
+        console.warn('QR generation test skipped - no test order created');
       }
     } catch (e) {
       console.error('QR generation test failed:', e);
@@ -332,16 +339,24 @@ export default function QRTestPage() {
 
     // Test 5: URL Structure
     try {
-      const basePath = process.env.NODE_ENV === 'production' ? '/thejerktrackerX' : '';
-      const expectedPattern = process.env.NODE_ENV === 'production' 
-        ? /https:\/\/.*\.github\.io\/thejerktrackerX\/orders\/.+/
-        : /http:\/\/localhost:3000\/orders\/.+/;
-      
-      if (testOrder) {
-        const orderUrl = `${window.location.origin}${basePath}/orders/${testOrder.id}`;
+      if (createdOrder) {
+        // Detect production by checking hostname
+        const isProduction = window.location.hostname.includes('github.io');
+        const basePath = isProduction ? '/thejerktrackerX' : '';
+        const expectedPattern = isProduction 
+          ? /https:\/\/.*\.github\.io\/thejerktrackerX\/orders\/.+/
+          : /http:\/\/localhost:3000\/orders\/.+/;
+        
+        const orderUrl = `${window.location.origin}${basePath}/orders/${createdOrder.id}`;
+        console.log('URL Structure test - URL:', orderUrl, 'Pattern:', expectedPattern.toString(), 'Production:', isProduction);
+        
         if (expectedPattern.test(orderUrl)) {
           results.urlStructure = 'success';
+        } else {
+          console.warn('URL structure test failed:', orderUrl, 'does not match', expectedPattern.toString());
         }
+      } else {
+        console.warn('URL structure test skipped - no test order created');
       }
     } catch (e) {
       console.error('URL structure test failed:', e);
@@ -503,16 +518,28 @@ export default function QRTestPage() {
                 <QRTitle>Test Order QR Code</QRTitle>
                 <QRWrapper>
                   <QRCodeCanvas 
-                    value={`${currentUrl}${process.env.NODE_ENV === 'production' ? '/thejerktrackerX' : ''}/orders/${testOrder.id}`}
+                    value={(() => {
+                      const isProduction = currentUrl.includes('github.io');
+                      const basePath = isProduction ? '/thejerktrackerX' : '';
+                      return `${currentUrl}${basePath}/orders/${testOrder.id}`;
+                    })()}
                     size={150}
                   />
                 </QRWrapper>
                 <QRUrl 
-                  href={`${currentUrl}${process.env.NODE_ENV === 'production' ? '/thejerktrackerX' : ''}/orders/${testOrder.id}`}
+                  href={(() => {
+                    const isProduction = currentUrl.includes('github.io');
+                    const basePath = isProduction ? '/thejerktrackerX' : '';
+                    return `${currentUrl}${basePath}/orders/${testOrder.id}`;
+                  })()}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {`${currentUrl}${process.env.NODE_ENV === 'production' ? '/thejerktrackerX' : ''}/orders/${testOrder.id}`}
+                  {(() => {
+                    const isProduction = currentUrl.includes('github.io');
+                    const basePath = isProduction ? '/thejerktrackerX' : '';
+                    return `${currentUrl}${basePath}/orders/${testOrder.id}`;
+                  })()}
                 </QRUrl>
                 <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
                   Order #{testOrder.orderNumber}
