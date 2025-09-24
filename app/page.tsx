@@ -202,11 +202,6 @@ export default function HomePage() {
                   <Button variant="ghost">QR Test</Button>
                 </motion.div>
               </Link>
-              <Link href="/qr-tracking">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button variant="ghost">QR Tracking</Button>
-                </motion.div>
-              </Link>
               <Link href="/admin">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button variant="primary">
