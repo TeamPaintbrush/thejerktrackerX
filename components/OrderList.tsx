@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Calendar, User, Truck, Search, Filter, X } from 'lucide-react';
+import Link from 'next/link';
+import { Calendar, User, Truck, Search, Filter, X, QrCode, ExternalLink } from 'lucide-react';
 import { Card, Heading, Grid, Flex, Button } from '../styles/components';
 import BulkActions from './BulkActions';
 
@@ -327,6 +328,37 @@ const DriverCompany = styled.span`
   color: #78716c;
 `;
 
+const QRCodeButton = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: #ed7734;
+  color: white;
+  text-decoration: none;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #de5d20;
+    color: white;
+    text-decoration: none;
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const ActionsCell = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+`;
+
 const ResultsCount = styled.div`
   padding: 0.75rem 1.5rem;
   background-color: #f5f5f4;
@@ -607,6 +639,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onExportCSV, onRefresh = 
                 <TableHeaderCell>Created</TableHeaderCell>
                 <TableHeaderCell>Driver</TableHeaderCell>
                 <TableHeaderCell>Picked Up</TableHeaderCell>
+                <TableHeaderCell>Actions</TableHeaderCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -654,6 +687,14 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onExportCSV, onRefresh = 
                   </TableCell>
                   <TableCell>
                     {order.pickedUpAt ? new Date(order.pickedUpAt).toLocaleString() : 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    <ActionsCell>
+                      <QRCodeButton href={`/orders/${order.id}`}>
+                        <QrCode />
+                        QR Code
+                      </QRCodeButton>
+                    </ActionsCell>
                   </TableCell>
                 </TableRow>
               ))}
