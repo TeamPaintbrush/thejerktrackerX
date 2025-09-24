@@ -264,10 +264,12 @@ if (typeof window !== 'undefined') {
   console.log('- JerkTrackerTests.testDataPersistence() - Test data saving');
 }
 
-export default {
+const testSuite = {
   testQRCodeGeneration,
   testOrderPageAccess,
   testDataPersistence,
   testOrderStatusUpdate,
   runAllTests
 };
+
+export default testSuite;

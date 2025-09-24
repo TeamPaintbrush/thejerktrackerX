@@ -839,7 +839,7 @@ export default function AdminPage() {
               <SectionCard>
                 <Heading as="h3" size="xl" weight="bold" mb="1.5rem" color="#1c1917">Menu Items</Heading>
                 <Text size="base" color="#78716c" mb="1.5rem">
-                  Browse and manage your restaurant's menu items. Click on any item to edit its details.
+                  Browse and manage your restaurant&apos;s menu items. Click on any item to edit its details.
                 </Text>
                 
                 {/* Categories */}
