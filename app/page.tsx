@@ -187,6 +187,11 @@ export default function HomePage() {
             </Logo>
             
             <Flex gap="1rem" align="center">
+              <Link href="/how-it-works">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button variant="ghost">How it Works</Button>
+                </motion.div>
+              </Link>
               <Link href="/pricing">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button variant="ghost">Pricing</Button>
