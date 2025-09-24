@@ -599,23 +599,25 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
               </p>
             </div>
             
-            {/* Delivery Confirmation Buttons */}
+            {/* Navigation Buttons */}
             <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', flexDirection: 'column' }}>
-              <button
-                onClick={handleMarkDelivered}
-                style={{
-                  background: '#10b981',
-                  color: 'white',
-                  padding: '0.75rem 1.5rem',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                Mark as Delivered
-              </button>
+              <Link href="/admin" style={{ textDecoration: 'none' }}>
+                <button
+                  style={{
+                    background: '#10b981',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  Back to Orders
+                </button>
+              </Link>
               <button
                 onClick={handleReportIssue}
                 style={{
