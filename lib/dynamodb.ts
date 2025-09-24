@@ -17,9 +17,10 @@ export interface Order {
   customerName: string;
   customerEmail: string;
   orderDetails: string;
-  status: 'pending' | 'picked_up';
+  status: 'pending' | 'picked_up' | 'delivered';
   createdAt: Date;
   pickedUpAt?: Date;
+  deliveredAt?: Date;
   driverName?: string;
   driverCompany?: string;
 }

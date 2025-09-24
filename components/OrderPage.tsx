@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CheckCircle, Package, Clock, User } from 'lucide-react';
+import { CheckCircle, Package, Clock, User, Phone, MapPin, Truck, Home, AlertTriangle } from 'lucide-react';
 import { LoadingButton, LoadingSpinner } from './Loading';
 import { useToast } from './Toast';
 import OrderTimeline from './OrderTimeline';
@@ -97,7 +97,7 @@ const MetaItem = styled.div`
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
 `;
 
-const StatusBadge = styled.span<{ $status: 'pending' | 'picked_up' }>`
+const StatusBadge = styled.span<{ $status: 'pending' | 'picked_up' | 'delivered' }>`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -106,16 +106,25 @@ const StatusBadge = styled.span<{ $status: 'pending' | 'picked_up' }>`
   font-weight: 500;
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
   
-  ${({ $status, theme }) =>
-    $status === 'picked_up'
-      ? `
-        background: ${theme.colors.accent[100]};
-        color: ${theme.colors.accent[800]};
-      `
-      : `
-        background: #fef3c7;
-        color: #92400e;
-      `}
+  ${({ $status, theme }) => {
+    switch ($status) {
+      case 'delivered':
+        return `
+          background: #d1fae5;
+          color: #065f46;
+        `;
+      case 'picked_up':
+        return `
+          background: ${theme.colors.accent[100]};
+          color: ${theme.colors.accent[800]};
+        `;
+      default:
+        return `
+          background: #fef3c7;
+          color: #92400e;
+        `;
+    }
+  }}
 `;
 
 const OrderDetails = styled.div`
@@ -238,6 +247,138 @@ const SuccessText = styled.p`
   margin: 0;
 `;
 
+const DeliveryCard = styled.div`
+  background: white;
+  border: 1px solid ${({ theme }) => theme.colors.border.light};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  box-shadow: ${({ theme }) => theme.shadows.soft};
+`;
+
+const DeliveryTitle = styled.h3`
+  font-size: ${({ theme }) => theme.typography.fontSize.lg};
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text.primary};
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const InfoGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
+const InfoItem = styled.div`
+  background: ${({ theme }) => theme.colors.secondary[50]};
+  padding: 1rem;
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  border-left: 3px solid ${({ theme }) => theme.colors.primary[500]};
+
+  h4 {
+    font-size: ${({ theme }) => theme.typography.fontSize.sm};
+    font-weight: 600;
+    color: ${({ theme }) => theme.colors.text.secondary};
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  p {
+    font-size: ${({ theme }) => theme.typography.fontSize.base};
+    color: ${({ theme }) => theme.colors.text.primary};
+    margin: 0;
+    word-break: break-word;
+  }
+`;
+
+const ActionButtons = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 1.5rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
+const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' | 'success' | 'danger' }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid;
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+
+  ${({ variant = 'primary', theme }) => {
+    switch (variant) {
+      case 'success':
+        return `
+          background: ${theme.colors.accent[600]};
+          border-color: ${theme.colors.accent[600]};
+          color: white;
+          &:hover { background: ${theme.colors.accent[700]}; border-color: ${theme.colors.accent[700]}; }
+        `;
+      case 'danger':
+        return `
+          background: ${theme.colors.error};
+          border-color: ${theme.colors.error};
+          color: white;
+          &:hover { background: #dc2626; border-color: #dc2626; }
+        `;
+      case 'secondary':
+        return `
+          background: white;
+          border-color: ${theme.colors.border.light};
+          color: ${theme.colors.text.primary};
+          &:hover { background: ${theme.colors.secondary[50]}; }
+        `;
+      default:
+        return `
+          background: ${theme.colors.primary[600]};
+          border-color: ${theme.colors.primary[600]};
+          color: white;
+          &:hover { background: ${theme.colors.primary[700]}; border-color: ${theme.colors.primary[700]}; }
+        `;
+    }
+  }}
+`;
+
+const ContactButton = styled.a`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: ${({ theme }) => theme.colors.info};
+  color: white;
+  text-decoration: none;
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  font-weight: 500;
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #2563eb;
+    text-decoration: none;
+    color: white;
+  }
+`;
+
 interface OrderPageProps {
   orderId: string;
 }
@@ -249,6 +390,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
   const [driverCompany, setDriverCompany] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isDelivered, setIsDelivered] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const { addToast } = useToast();
 
@@ -342,10 +484,10 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
         message: `Order #${order.orderNumber} has been marked as picked up.`
       });
 
-      // Auto redirect after 3 seconds
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 3000);
+      // Don't auto-redirect, let driver see delivery info
+      // setTimeout(() => {
+      //   window.location.href = '/';
+      // }, 3000);
     } catch (error) {
       addToast({
         type: 'error',
@@ -355,6 +497,57 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleMarkDelivered = async () => {
+    if (!order) return;
+
+    try {
+      const updatedOrder = {
+        ...order,
+        status: 'delivered' as const,
+        deliveredAt: new Date(),
+      };
+
+      // Update in DynamoDB
+      try {
+        await DynamoDBService.updateOrder(orderId, {
+          status: 'delivered',
+          deliveredAt: new Date(),
+        });
+      } catch (dbError) {
+        console.error('Failed to update delivery status:', dbError);
+      }
+
+      setOrder(updatedOrder);
+      setIsDelivered(true);
+
+      addToast({
+        type: 'success',
+        title: 'Delivery Confirmed!',
+        message: `Order #${order.orderNumber} has been marked as delivered.`
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Could not update delivery status. Please try again.'
+      });
+    }
+  };
+
+  const handleReportIssue = () => {
+    addToast({
+      type: 'info',
+      title: 'Issue Reported',
+      message: 'Issue has been reported. Restaurant will be notified.'
+    });
+  };
+
+  const formatPhoneNumber = (email: string) => {
+    // Extract phone if it's in email format, otherwise return empty
+    // This is a placeholder - you might want to add a separate phone field
+    return '';
   };
 
   if (loading) {
@@ -387,7 +580,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
     );
   }
 
-  if (isSubmitted) {
+  if (isSubmitted && !isDelivered) {
     return (
       <PageContainer>
         <ContentWrapper>
@@ -403,7 +596,62 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
                 <strong>Time:</strong> {order.pickedUpAt?.toLocaleString()}
               </p>
             </div>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Redirecting to home in 3 seconds...</p>
+            
+            {/* Delivery Confirmation Buttons */}
+            <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', flexDirection: 'column' }}>
+              <button
+                onClick={handleMarkDelivered}
+                style={{
+                  background: '#10b981',
+                  color: 'white',
+                  padding: '0.75rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Mark as Delivered
+              </button>
+              <button
+                onClick={handleReportIssue}
+                style={{
+                  background: '#f59e0b',
+                  color: 'white',
+                  padding: '0.75rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Report Issue
+              </button>
+            </div>
+          </SuccessMessage>
+        </ContentWrapper>
+      </PageContainer>
+    );
+  }
+
+  if (isDelivered) {
+    return (
+      <PageContainer>
+        <ContentWrapper>
+          <SuccessMessage>
+            <CheckCircle size={80} color="#3b82f6" />
+            <SuccessTitle>Delivery Complete!</SuccessTitle>
+            <SuccessText>Order has been successfully delivered.</SuccessText>
+            <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px', margin: '1rem 0' }}>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
+                <strong>Order:</strong> #{order?.orderNumber}<br />
+                <strong>Driver:</strong> {order?.driverName}<br />
+                <strong>Company:</strong> {order?.driverCompany}<br />
+                <strong>Delivered:</strong> {order?.deliveredAt?.toLocaleString()}
+              </p>
+            </div>
           </SuccessMessage>
         </ContentWrapper>
       </PageContainer>

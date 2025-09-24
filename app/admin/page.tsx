@@ -392,13 +392,21 @@ const RecentOrderItem = styled.div`
   border-radius: 0.5rem;
 `;
 
-const StatusBadge = styled.span<{ status: 'pending' | 'picked_up' }>`
+const StatusBadge = styled.span<{ status: 'pending' | 'picked_up' | 'delivered' }>`
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
-  background: ${props => props.status === 'pending' ? '#f59e0b20' : '#22c55e20'};
-  color: ${props => props.status === 'pending' ? '#f59e0b' : '#22c55e'};
+  background: ${props => {
+    if (props.status === 'pending') return '#f59e0b20';
+    if (props.status === 'picked_up') return '#22c55e20';
+    return '#3b82f620'; // delivered - blue
+  }};
+  color: ${props => {
+    if (props.status === 'pending') return '#f59e0b';
+    if (props.status === 'picked_up') return '#22c55e';
+    return '#3b82f6'; // delivered - blue
+  }};
 `;
 
 const SectionHeader = styled.div`
@@ -765,7 +773,8 @@ export default function AdminPage() {
                         <Text size="sm" color="#78716c">{order.customerName}</Text>
                       </div>
                       <StatusBadge status={order.status}>
-                        {order.status === 'pending' ? 'Pending' : 'Picked Up'}
+                        {order.status === 'pending' ? 'Pending' : 
+                         order.status === 'picked_up' ? 'Picked Up' : 'Delivered'}
                       </StatusBadge>
                     </RecentOrderItem>
                   ))}

@@ -5,6 +5,7 @@ import { Check, Trash2, Download, Mail, Archive, MoreHorizontal } from 'lucide-r
 import { LoadingButton } from './Loading';
 import { useToast } from './Toast';
 import styled from 'styled-components';
+import { Order } from '../lib/dynamodb';
 
 const BulkActionsContainer = styled.div`
   position: sticky;
@@ -177,18 +178,7 @@ const DropdownItem = styled.button<{ $variant?: 'danger' }>`
   }
 `;
 
-interface Order {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  customerEmail: string;
-  orderDetails: string;
-  status: 'pending' | 'picked_up';
-  createdAt: Date;
-  driverName?: string;
-  driverCompany?: string;
-  pickedUpAt?: Date;
-}
+
 
 interface BulkActionsProps {
   selectedOrders: string[];

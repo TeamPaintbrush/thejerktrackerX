@@ -120,11 +120,12 @@ interface Order {
   customerName: string;
   customerEmail: string;
   orderDetails: string;
-  status: 'pending' | 'picked_up';
+  status: 'pending' | 'picked_up' | 'delivered';
   createdAt: Date;
   driverName?: string;
   driverCompany?: string;
   pickedUpAt?: Date;
+  deliveredAt?: Date;
 }
 
 interface OrderTimelineProps {
@@ -165,9 +166,18 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ order }) => {
       title: 'Order Picked Up',
       description: 'Order collected by delivery driver',
       icon: Truck,
-      completed: order.status === 'picked_up',
+      completed: order.status === 'picked_up' || order.status === 'delivered',
       timestamp: order.pickedUpAt,
-      details: order.status === 'picked_up' ? 'Pickup confirmed' : 'Pending pickup'
+      details: (order.status === 'picked_up' || order.status === 'delivered') ? 'Pickup confirmed' : 'Pending pickup'
+    },
+    {
+      id: 5,
+      title: 'Order Delivered',
+      description: 'Order delivered to customer',
+      icon: CheckCircle,
+      completed: order.status === 'delivered',
+      timestamp: order.deliveredAt,
+      details: order.status === 'delivered' ? 'Delivery confirmed' : 'Pending delivery'
     }
   ];
 
