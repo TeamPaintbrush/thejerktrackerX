@@ -565,6 +565,7 @@ export default function AdminPage() {
     { id: 'orders', icon: <Package size={20} />, label: 'Orders' },
     { id: 'create', icon: <PlusCircle size={20} />, label: 'Create Order' },
     { id: 'menu', icon: <Menu size={20} />, label: 'Menu Items' },
+    { id: 'qr', icon: <QrCode size={20} />, label: 'QR Codes', href: '/qr-tracking' },
     { id: 'settings', icon: <Settings size={20} />, label: 'Settings' },
   ];
 
@@ -638,13 +639,26 @@ export default function AdminPage() {
           <NavList>
             {sidebarItems.map((item) => (
               <NavItem key={item.id}>
-                <NavButton
-                  $active={activeTab === item.id}
-                  onClick={() => setActiveTab(item.id)}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </NavButton>
+                {item.href ? (
+                  <Link href={item.href} style={{ textDecoration: 'none', width: '100%' }}>
+                    <NavButton
+                      $active={false}
+                      onClick={() => {}}
+                      style={{ width: '100%' }}
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </NavButton>
+                  </Link>
+                ) : (
+                  <NavButton
+                    $active={activeTab === item.id}
+                    onClick={() => setActiveTab(item.id)}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </NavButton>
+                )}
               </NavItem>
             ))}
           </NavList>
