@@ -464,20 +464,30 @@ export default function AdminPage() {
   const [latestOrder, setLatestOrder] = useState<Order | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Load orders from DynamoDB
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+    
+    // Load orders from localStorage
     const loadOrders = async () => {
       try {
         const ordersFromDB = await DynamoDBService.getAllOrders();
         setOrders(ordersFromDB);
+        if (ordersFromDB.length > 0) {
+          setLatestOrder(ordersFromDB[ordersFromDB.length - 1]);
+        }
       } catch (error) {
         console.error('Failed to load orders:', error);
         setOrders([]);
       }
     };
     loadOrders();
-  }, []);
+  }, [isClient]);
 
   const handleOrderCreated = async (newOrder: Order) => {
     try {
@@ -787,7 +797,7 @@ export default function AdminPage() {
             </motion.div>
           )}
 
-          {activeTab === 'qr' && latestOrder && (
+          {activeTab === 'qr' && isClient && latestOrder && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -799,6 +809,21 @@ export default function AdminPage() {
                   orderId={latestOrder.id}
                   orderNumber={latestOrder.orderNumber}
                 />
+              </SectionCard>
+            </motion.div>
+          )}
+
+          {activeTab === 'qr' && (!isClient || !latestOrder) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <SectionCard>
+                <Heading as="h3" size="xl" weight="bold" mb="1.5rem" color="#1c1917">QR Code</Heading>
+                <Text size="base" color="#78716c">
+                  {!isClient ? 'Loading...' : 'No orders found. Create an order first to generate a QR code.'}
+                </Text>
               </SectionCard>
             </motion.div>
           )}

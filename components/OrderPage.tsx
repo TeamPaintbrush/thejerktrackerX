@@ -249,10 +249,17 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
   const [driverCompany, setDriverCompany] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const { addToast } = useToast();
 
   useEffect(() => {
-    // Load order from DynamoDB
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient || !orderId) return;
+    
+    // Load order from localStorage
     const loadOrder = async () => {
       setLoading(true);
 
@@ -275,7 +282,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
     };
 
     loadOrder();
-  }, [orderId]);
+  }, [orderId, isClient]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

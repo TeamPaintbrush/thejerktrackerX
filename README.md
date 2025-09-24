@@ -19,18 +19,12 @@ A modern restaurant order tracking app built with Next.js, Styled Components, an
    ```bash
    npm install
    ```
-3. Set up environment variables in `.env.local`:
-   ```env
-   NEXT_PUBLIC_API_URL=
-   AWS_ACCESS_KEY_ID=your-access-key-id
-   AWS_SECRET_ACCESS_KEY=your-secret-access-key
-   AWS_REGION=us-east-1
-   ```
-4. Run the development server:
+3. Run the development server:
    ```bash
    npm run dev
    ```
-5. Open [http://localhost:3000](http://localhost:3000)
+4. Open [http://localhost:3000](http://localhost:3000)
+5. Admin dashboard: [http://localhost:3000/admin](http://localhost:3000/admin)
 
 ### Deployment
 
@@ -40,6 +34,10 @@ The app is deployed to GitHub Pages using static export:
 npm run build
 npm run deploy
 ```
+
+**Live URLs:**
+- **Main Page**: https://teampaintbrush.github.io/thejerktrackerX/
+- **Admin Dashboard**: https://teampaintbrush.github.io/thejerktrackerX/admin/
 
 ## Architecture
 
