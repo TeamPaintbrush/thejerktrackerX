@@ -250,7 +250,7 @@ export default function QRTestPage() {
     
     runTests();
     loadServiceStatus();
-  }, [isClient]);
+  }, [isClient]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadServiceStatus = async () => {
     try {
@@ -536,10 +536,10 @@ export default function QRTestPage() {
               <strong>Fill Driver Form:</strong> Enter driver name and select delivery company from dropdown.
             </StepItem>
             <StepItem>
-              <strong>Submit Pickup:</strong> Click "Confirm Pickup" and verify success message appears.
+              <strong>Submit Pickup:</strong> Click &quot;Confirm Pickup&quot; and verify success message appears.
             </StepItem>
             <StepItem>
-              <strong>Check Admin:</strong> Return to admin dashboard and verify order status changed to "Picked Up".
+              <strong>Check Admin:</strong> Return to admin dashboard and verify order status changed to &quot;Picked Up&quot;.
             </StepItem>
           </StepList>
           
@@ -552,7 +552,7 @@ export default function QRTestPage() {
           }}>
             <strong style={{ color: '#92400e' }}>⚠️ Important:</strong>
             <p style={{ margin: '0.5rem 0 0', color: '#92400e', fontSize: '0.875rem' }}>
-              If the QR code scan works but data isn't persisting, the issue is likely with localStorage 
+              If the QR code scan works but data isn&apos;t persisting, the issue is likely with localStorage 
               domain restrictions on GitHub Pages. The tests above will help identify the exact issue.
             </p>
           </div>
