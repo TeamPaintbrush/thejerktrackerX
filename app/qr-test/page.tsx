@@ -323,11 +323,11 @@ export default function QRTestPage() {
         // Detect production by checking hostname
         const isProduction = window.location.hostname.includes('github.io');
         const basePath = isProduction ? '/thejerktrackerX' : '';
-        const orderUrl = `${window.location.origin}${basePath}/orders/${createdOrder.id}`;
+        const orderUrl = `${window.location.origin}${basePath}/order?id=${createdOrder.id}`;
         
         console.log('QR Generation test - URL:', orderUrl, 'Production:', isProduction);
         
-        if (orderUrl.includes('/orders/') && createdOrder.id) {
+        if (orderUrl.includes('/order?id=') && createdOrder.id) {
           results.qrGeneration = 'success';
         }
       } else {
@@ -344,10 +344,10 @@ export default function QRTestPage() {
         const isProduction = window.location.hostname.includes('github.io');
         const basePath = isProduction ? '/thejerktrackerX' : '';
         const expectedPattern = isProduction 
-          ? /https:\/\/.*\.github\.io\/thejerktrackerX\/orders\/.+/
-          : /http:\/\/localhost:3000\/orders\/.+/;
+          ? /https:\/\/.*\.github\.io\/thejerktrackerX\/order\?id=.+/
+          : /http:\/\/localhost:3000\/order\?id=.+/;
         
-        const orderUrl = `${window.location.origin}${basePath}/orders/${createdOrder.id}`;
+        const orderUrl = `${window.location.origin}${basePath}/order?id=${createdOrder.id}`;
         console.log('URL Structure test - URL:', orderUrl, 'Pattern:', expectedPattern.toString(), 'Production:', isProduction);
         
         if (expectedPattern.test(orderUrl)) {
@@ -521,7 +521,7 @@ export default function QRTestPage() {
                     value={(() => {
                       const isProduction = currentUrl.includes('github.io');
                       const basePath = isProduction ? '/thejerktrackerX' : '';
-                      return `${currentUrl}${basePath}/orders/${testOrder.id}`;
+                      return `${currentUrl}${basePath}/order?id=${testOrder.id}`;
                     })()}
                     size={150}
                   />
@@ -530,7 +530,7 @@ export default function QRTestPage() {
                   href={(() => {
                     const isProduction = currentUrl.includes('github.io');
                     const basePath = isProduction ? '/thejerktrackerX' : '';
-                    return `${currentUrl}${basePath}/orders/${testOrder.id}`;
+                    return `${currentUrl}${basePath}/order?id=${testOrder.id}`;
                   })()}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -538,7 +538,7 @@ export default function QRTestPage() {
                   {(() => {
                     const isProduction = currentUrl.includes('github.io');
                     const basePath = isProduction ? '/thejerktrackerX' : '';
-                    return `${currentUrl}${basePath}/orders/${testOrder.id}`;
+                    return `${currentUrl}${basePath}/order?id=${testOrder.id}`;
                   })()}
                 </QRUrl>
                 <div style={{ fontSize: '0.875rem', color: '#64748b' }}>

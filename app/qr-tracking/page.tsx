@@ -350,7 +350,7 @@ const QRTrackingPage: React.FC = () => {
     const isProduction = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
     const basePath = isProduction ? '/thejerktrackerX' : '';
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${baseUrl}${basePath}/orders/${orderId}`;
+    return `${baseUrl}${basePath}/order?id=${orderId}`;
   };
 
   const stats = {
@@ -521,7 +521,7 @@ const QRTrackingPage: React.FC = () => {
                 )}
 
                 <ActionButtons>
-                  <ActionButton as={Link} href={`/orders/${order.id}`}>
+                  <ActionButton as={Link} href={`/order?id=${order.id}`}>
                     <ExternalLink size={16} />
                     View Order
                   </ActionButton>

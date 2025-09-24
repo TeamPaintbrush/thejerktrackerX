@@ -71,7 +71,7 @@ interface QRCodeDisplayProps {
 
 const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ orderId, orderNumber }) => {
   const basePath = process.env.NODE_ENV === 'production' ? '/thejerktrackerX' : '';
-  const orderUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}${basePath}/orders/${orderId}`;
+  const orderUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}${basePath}/order?id=${orderId}`;
 
   return (
     <QRContainer>

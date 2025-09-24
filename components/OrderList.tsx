@@ -690,7 +690,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onExportCSV, onRefresh = 
                   </TableCell>
                   <TableCell>
                     <ActionsCell>
-                      <QRCodeButton href={`/orders/${order.id}`}>
+                      <QRCodeButton href={`/order?id=${order.id}`}>
                         <QrCode />
                         QR Code
                       </QRCodeButton>

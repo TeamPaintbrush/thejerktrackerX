@@ -7,6 +7,7 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
+  // For static export, only generate the placeholder
   return [{ id: 'placeholder' }];
 }
 
