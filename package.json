@@ -11,14 +11,23 @@
     "deploy": "gh-pages -d out"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.895.0",
+    "@aws-sdk/lib-dynamodb": "^3.895.0",
+    "@babel/runtime": "^7.28.4",
+    "@types/styled-components": "^5.1.34",
+    "framer-motion": "^12.23.19",
+    "lucide-react": "^0.544.0",
     "next": "15.5.4",
+    "qrcode.react": "^4.2.0",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "styled-components": "^6.1.19"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "babel-plugin-styled-components": "^2.1.4",
     "eslint": "^8",
     "eslint-config-next": "15.5.4",
     "gh-pages": "^6.3.0",
