@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You're Offline - JERK Tracker</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #fafaf9 0%, #f5f5f4 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1c1917;
+      padding: 1rem;
+    }
+    
+    .offline-container {
+      background: white;
+      border-radius: 1rem;
+      padding: 2rem;
+      box-shadow: 0 10px 50px -12px rgba(0, 0, 0, 0.25);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+    }
+    
+    .offline-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1.5rem;
+      background: #ed7734;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 2rem;
+    }
+    
+    .offline-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #1c1917;
+    }
+    
+    .offline-message {
+      color: #57534e;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    
+    .retry-button {
+      background: #ed7734;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 1rem;
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    .retry-button:hover {
+      background: #de5d20;
+      transform: translateY(-1px);
+    }
+    
+    .retry-button:active {
+      transform: translateY(0);
+    }
+    
+    .offline-features {
+      margin-top: 2rem;
+      text-align: left;
+      background: #f8fafc;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .offline-features h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: #1e293b;
+    }
+    
+    .offline-features ul {
+      list-style: none;
+    }
+    
+    .offline-features li {
+      padding: 0.5rem 0;
+      color: #64748b;
+      font-size: 0.875rem;
+      position: relative;
+      padding-left: 1.5rem;
+    }
+    
+    .offline-features li:before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #22c55e;
+      font-weight: bold;
+    }
+    
+    @media (max-width: 640px) {
+      .offline-container {
+        margin: 1rem;
+        padding: 1.5rem;
+      }
+      
+      .offline-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+      }
+      
+      .offline-title {
+        font-size: 1.25rem;
+      }
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: linear-gradient(135deg, #1c1917 0%, #292524 100%);
+        color: #fafaf9;
+      }
+      
+      .offline-container {
+        background: #44403c;
+        color: #fafaf9;
+      }
+      
+      .offline-title {
+        color: #fafaf9;
+      }
+      
+      .offline-message {
+        color: #d6d3d1;
+      }
+      
+      .offline-features {
+        background: #57534e;
+        border-color: #78716c;
+      }
+      
+      .offline-features h3 {
+        color: #f5f5f4;
+      }
+      
+      .offline-features li {
+        color: #a8a29e;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="offline-icon">
+      📱
+    </div>
+    
+    <h1 class="offline-title">You're Offline</h1>
+    
+    <p class="offline-message">
+      No internet connection detected. Don't worry - JERK Tracker works offline too! 
+      Your data will sync automatically when you're back online.
+    </p>
+    
+    <button class="retry-button" onclick="window.location.reload()">
+      Try Again
+    </button>
+    
+    <div class="offline-features">
+      <h3>Available Offline:</h3>
+      <ul>
+        <li>View previously loaded orders</li>
+        <li>Browse cached restaurant data</li>
+        <li>Access QR code scanner</li>
+        <li>View pricing and features</li>
+        <li>Create orders (syncs when online)</li>
+      </ul>
+    </div>
+  </div>
+  
+  <script>
+    // Auto-retry when connection is restored
+    window.addEventListener('online', () => {
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    });
+    
+    // Check connection status
+    if (navigator.onLine) {
+      // If we're actually online, redirect to home
+      window.location.href = '/';
+    }
+    
+    // Service worker update check
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.addEventListener('updatefound', () => {
+          // New version available
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') {
+              // Show update available message
+              const updateBanner = document.createElement('div');
+              updateBanner.innerHTML = `
+                <div style="
+                  position: fixed;
+                  top: 1rem;
+                  left: 1rem;
+                  right: 1rem;
+                  background: #22c55e;
+                  color: white;
+                  padding: 1rem;
+                  border-radius: 0.5rem;
+                  text-align: center;
+                  font-size: 0.875rem;
+                  z-index: 1000;
+                ">
+                  App updated! <button onclick="window.location.reload()" style="
+                    background: transparent;
+                    border: 1px solid white;
+                    color: white;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 0.25rem;
+                    margin-left: 0.5rem;
+                    cursor: pointer;
+                  ">Reload</button>
+                </div>
+              `;
+              document.body.appendChild(updateBanner);
+            }
+          });
+        });
+      });
+    }
+  </script>
+</body>
+</html>

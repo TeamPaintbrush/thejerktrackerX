@@ -1,0 +1,170 @@
+{
+  "name": "JERK Tracker - Mobile Order Management",
+  "short_name": "JERKTracker",
+  "description": "Mobile-first restaurant pickup tracking with GitHub integration for modern food service operations",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#ed7734",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "food"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Admin Dashboard",
+      "short_name": "Dashboard",
+      "description": "Quick access to order management dashboard",
+      "url": "/admin",
+      "icons": [
+        {
+          "src": "/icons/shortcut-dashboard.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Create Order",
+      "short_name": "New Order",
+      "description": "Create a new pickup order",
+      "url": "/order",
+      "icons": [
+        {
+          "src": "/icons/shortcut-order.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "QR Scanner",
+      "short_name": "Scan QR",
+      "description": "Scan QR codes for order tracking",
+      "url": "/qr-tracking",
+      "icons": [
+        {
+          "src": "/icons/shortcut-qr.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "GitHub Issues",
+      "short_name": "GitHub",
+      "description": "View and manage GitHub integrated orders",
+      "url": "/admin?tab=github",
+      "icons": [
+        {
+          "src": "/icons/shortcut-github.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-dashboard.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Mobile dashboard showing order management interface"
+    },
+    {
+      "src": "/screenshots/mobile-order-form.png", 
+      "sizes": "390x844",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Mobile order creation form with touch-optimized inputs"
+    },
+    {
+      "src": "/screenshots/desktop-dashboard.png",
+      "sizes": "1280x720", 
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Desktop dashboard with GitHub integration"
+    }
+  ],
+  "scope": "/",
+  "id": "jerk-tracker-mobile",
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "handle_links": "preferred",
+  "capture_links": "existing-client-navigate",
+  "display_override": ["window-controls-overlay", "minimal-ui", "standalone", "browser"],
+  "protocol_handlers": [
+    {
+      "protocol": "web+jerktracker",
+      "url": "/order?data=%s"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "/admin",
+      "accept": {
+        "text/csv": [".csv"],
+        "application/json": [".json"]
+      },
+      "name": "Order Import",
+      "icons": [
+        {
+          "src": "/icons/file-handler.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}
