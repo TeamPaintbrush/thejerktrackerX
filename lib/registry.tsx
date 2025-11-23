@@ -17,10 +17,19 @@ export default function StyledComponentsRegistry({
     return <>{styles}</>;
   });
 
-  if (typeof window !== 'undefined') return <>{children}</>;
+  if (typeof window !== 'undefined') {
+    return (
+      <StyleSheetManager shouldForwardProp={(prop) => !prop.startsWith('$')}>
+        {children}
+      </StyleSheetManager>
+    );
+  }
 
   return (
-    <StyleSheetManager sheet={styledComponentsStyleSheet.instance}>
+    <StyleSheetManager 
+      sheet={styledComponentsStyleSheet.instance}
+      shouldForwardProp={(prop) => !prop.startsWith('$')}
+    >
       {children}
     </StyleSheetManager>
   );

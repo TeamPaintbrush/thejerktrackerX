@@ -6,6 +6,8 @@ import { CheckCircle, Package, Clock, User, Phone, MapPin, Truck, Home, AlertTri
 import { LoadingButton, LoadingSpinner } from './Loading';
 import { useToast } from './Toast';
 import OrderTimeline from './OrderTimeline';
+import QRCodeDisplay from './QRCodeDisplay';
+import FraudClaimForm from './FraudClaimForm';
 import styled from 'styled-components';
 import { DynamoDBService, Order } from '../lib/dynamodb';
 
@@ -13,11 +15,25 @@ const PageContainer = styled.div`
   min-height: 100vh;
   background: ${({ theme }) => theme.colors.secondary[50]};
   padding: 2rem 1rem;
+  /* Mobile overflow prevention */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  
+  @media (max-width: 768px) {
+    padding: 1rem 0.5rem;
+  }
 `;
 
 const ContentWrapper = styled.div`
   max-width: 1200px;
   margin: 0 auto;
+  /* Mobile overflow prevention */
+  width: 100%;
+  padding: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
 `;
 
 const LoadingContainer = styled.div`
@@ -150,9 +166,19 @@ const GridLayout = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   gap: 2rem;
+  /* Mobile overflow prevention */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 
   @media (min-width: 1024px) {
     grid-template-columns: 1fr 400px;
+  }
+  
+  @media (max-width: 768px) {
+    gap: 1rem;
+    padding: 0;
   }
 `;
 
@@ -162,6 +188,15 @@ const CheckInCard = styled.div`
   box-shadow: ${({ theme }) => theme.shadows.medium};
   padding: 2rem;
   border: 1px solid ${({ theme }) => theme.colors.border.light};
+  /* Mobile overflow prevention */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
 const CheckInTitle = styled.h2`
@@ -538,12 +573,19 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
     }
   };
 
+  const [showFraudClaimForm, setShowFraudClaimForm] = useState(false);
+
   const handleReportIssue = () => {
+    setShowFraudClaimForm(true);
+  };
+
+  const handleFraudClaimSuccess = () => {
     addToast({
-      type: 'info',
-      title: 'Issue Reported',
-      message: 'Issue has been reported. Restaurant will be notified.'
+      type: 'success',
+      title: 'Fraud Claim Submitted',
+      message: 'Your claim has been submitted and is under review.'
     });
+    setShowFraudClaimForm(false);
   };
 
   const formatPhoneNumber = (email: string) => {
@@ -698,6 +740,17 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
               <OrderDetailsText>{order.orderDetails}</OrderDetailsText>
             </OrderDetails>
           )}
+          
+          {/* QR Code Section */}
+          <div style={{ marginTop: '1.5rem' }}>
+            <QRCodeDisplay
+              orderId={order.id}
+              orderNumber={order.orderNumber}
+              compact={true}
+              size={120}
+              showPrintButton={false}
+            />
+          </div>
         </OrderHeader>
 
         <GridLayout>
@@ -776,6 +829,15 @@ const OrderPage: React.FC<OrderPageProps> = ({ orderId }) => {
           </CheckInCard>
         </GridLayout>
       </ContentWrapper>
+
+      {/* Fraud Claim Form Modal */}
+      <FraudClaimForm
+        isOpen={showFraudClaimForm}
+        onClose={() => setShowFraudClaimForm(false)}
+        order={order}
+        businessId={order.location.businessId}
+        onSubmitSuccess={handleFraudClaimSuccess}
+      />
     </PageContainer>
   );
 };

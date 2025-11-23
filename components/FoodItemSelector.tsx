@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import { Search, Plus, Star, Clock, Flame } from 'lucide-react';
 import { Card, Button, Flex, Grid } from '../styles/components';
@@ -9,12 +9,14 @@ import {
   FoodCategory, 
   FOOD_CATEGORIES, 
   PRESET_FOOD_ITEMS,
-  getFoodItemsByCategory,
-  getPopularFoodItems,
-  searchFoodItems,
+  mergeFoodItems,
+  getAllFoodItemsByCategory,
+  getAllPopularFoodItems,
+  searchAllFoodItems,
   formatPrice,
   getSpiceLevelEmoji
 } from '../lib/foodItems';
+import { DynamoDBService } from '../lib/dynamodb';
 
 const SelectorContainer = styled(Card)`
   background: white;
@@ -296,28 +298,64 @@ interface FoodItemSelectorProps {
   onItemSelect: (item: FoodItem) => void;
   onItemRemove: (itemId: string) => void;
   onClearAll: () => void;
+  businessId?: string;  // Optional: if provided, loads menu items from database
+  includePresets?: boolean;  // Whether to include preset items (default: true)
 }
 
 const FoodItemSelector: React.FC<FoodItemSelectorProps> = ({
   selectedItems,
   onItemSelect,
   onItemRemove,
-  onClearAll
+  onClearAll,
+  businessId,
+  includePresets = true
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>('popular');
   const [searchQuery, setSearchQuery] = useState('');
+  const [allMenuItems, setAllMenuItems] = useState<FoodItem[]>(PRESET_FOOD_ITEMS);
+  const [loading, setLoading] = useState(false);
+
+  // Load menu items from database if businessId is provided
+  useEffect(() => {
+    const loadMenuItems = async () => {
+      if (businessId) {
+        setLoading(true);
+        try {
+          const dbItems = await DynamoDBService.getMenuItems(businessId);
+          const merged = mergeFoodItems(dbItems as any, includePresets);
+          setAllMenuItems(merged as FoodItem[]);
+        } catch (error) {
+          console.error('Error loading menu items:', error);
+          // Fallback to preset items only
+          setAllMenuItems(PRESET_FOOD_ITEMS);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // No businessId provided, use preset items only
+        setAllMenuItems(PRESET_FOOD_ITEMS);
+      }
+    };
+
+    loadMenuItems();
+  }, [businessId, includePresets]);
 
   const filteredItems = useMemo(() => {
+    // Filter out unavailable items
+    const availableItems = allMenuItems.filter(item => 
+      !item.availability || item.availability.isAvailable !== false
+    );
+
     if (searchQuery.trim()) {
-      return searchFoodItems(searchQuery);
+      return searchAllFoodItems(availableItems, searchQuery) as FoodItem[];
     }
 
     if (activeCategory === 'popular') {
-      return getPopularFoodItems();
+      return getAllPopularFoodItems(availableItems) as FoodItem[];
     }
 
-    return getFoodItemsByCategory(activeCategory);
-  }, [activeCategory, searchQuery]);
+    return getAllFoodItemsByCategory(availableItems, activeCategory) as FoodItem[];
+  }, [activeCategory, searchQuery, allMenuItems]);
 
   const isItemSelected = (itemId: string) => {
     return selectedItems.some(item => item.id === itemId);
@@ -330,6 +368,16 @@ const FoodItemSelector: React.FC<FoodItemSelectorProps> = ({
     { id: 'popular', name: 'Popular', icon: '⭐' },
     ...FOOD_CATEGORIES
   ];
+
+  if (loading) {
+    return (
+      <SelectorContainer>
+        <SelectorHeader>
+          <SelectorTitle>Loading menu items...</SelectorTitle>
+        </SelectorHeader>
+      </SelectorContainer>
+    );
+  }
 
   return (
     <SelectorContainer>

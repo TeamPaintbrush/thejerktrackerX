@@ -10,6 +10,10 @@ import { Container, Button, Heading, Text, Flex, Grid, Card } from '../../styles
 const PageWrapper = styled.div`
   min-height: 100vh;
   background: linear-gradient(135deg, #fef7ee 0%, #fafaf9 50%, #fef7ee 100%);
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 `;
 
 const Navigation = styled.nav`
@@ -142,25 +146,25 @@ const PricingGrid = styled(Grid)`
   }
 `;
 
-const PricingCard = styled(Card)<{ popular?: boolean }>`
+const PricingCard = styled(Card)<{ $popular?: boolean }>`
   position: relative;
   padding: 2rem;
-  border: 2px solid ${props => props.popular ? '#ed773420' : '#e7e5e4'};
+  border: 2px solid ${props => props.$popular ? '#ed773420' : '#e7e5e4'};
   background: white;
   transition: all 0.3s ease;
-  transform: ${props => props.popular ? 'scale(1.05)' : 'scale(1)'};
+  transform: ${props => props.$popular ? 'scale(1.05)' : 'scale(1)'};
 
   &:hover {
     border-color: #ed773420;
-    transform: ${props => props.popular ? 'scale(1.05)' : 'scale(1.02)'};
+    transform: ${props => props.$popular ? 'scale(1.05)' : 'scale(1.02)'};
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
 
   @media (min-width: 1024px) {
-    transform: ${props => props.popular ? 'scale(1.08)' : 'scale(1)'};
+    transform: ${props => props.$popular ? 'scale(1.08)' : 'scale(1)'};
 
     &:hover {
-      transform: ${props => props.popular ? 'scale(1.08)' : 'scale(1.03)'};
+      transform: ${props => props.$popular ? 'scale(1.08)' : 'scale(1.03)'};
     }
   }
 `;
@@ -304,13 +308,16 @@ export default function PricingPage() {
       originalPrice: isAnnual ? 59 : null,
       period: isAnnual ? "/month (billed annually)" : "/month",
       popular: true,
-      description: "Advanced features for growing restaurants(Per Location)",
+      description: "Advanced features for growing restaurants (Per Location)",
       features: [
         "Unlimited orders",
         "Advanced QR code features",
+        "🎨 Custom Business Branding",
+        "🎨 Upload Brand Logo",
+        "🎨 Custom Brand Colors",
+        "🎨 Styled QR Codes with Logo",
         "Comprehensive analytics & reporting",
         "Priority email support",
-        "Custom branding",
         "API access",
         "Driver performance insights",
         "Customer feedback system"
@@ -373,14 +380,14 @@ export default function PricingPage() {
             <Logo>
               <LogoIcon>JT</LogoIcon>
               <div>
-                <Heading as="h1" size="xl" mb="0" weight="bold" color="#1c1917">TheJERKTracker</Heading>
-                <Text size="sm" color="#78716c">Restaurant Solutions</Text>
+                <Heading as="h1" $size="xl" $mb="0" $weight="bold" $color="#1c1917">TheJERKTracker</Heading>
+                <Text $size="sm" $color="#78716c">Restaurant Solutions</Text>
               </div>
             </Logo>
           </BackLink>
           
           <Link href="/admin">
-            <Button variant="primary">Launch Dashboard</Button>
+            <Button $variant="primary">Launch Dashboard</Button>
           </Link>
         </NavContainer>
       </Navigation>
@@ -395,16 +402,16 @@ export default function PricingPage() {
           >
             <Badge>
               <Crown size={16} />
-              Trusted by 2,000+ Restaurants
+              Trusted by 2,100+ Restaurants
             </Badge>
             
-            <Heading as="h1" size="6xl" weight="bold" mb="1.5rem" color="#1c1917" style={{ lineHeight: 1.1 }}>
+            <Heading as="h1" $size="6xl" $weight="bold" $mb="1.5rem" $color="#1c1917" style={{ lineHeight: 1.1 }}>
               Choose Your
               <br />
               <GradientText>Perfect Plan</GradientText>
             </Heading>
             
-            <Text size="xl" mb="3rem" color="#57534e" style={{ maxWidth: '800px', margin: '0 auto 3rem' }}>
+            <Text $size="xl" $mb="3rem" $color="#57534e" style={{ maxWidth: '800px', margin: '0 auto 3rem' }}>
               Flexible pricing designed to grow with your restaurant. Start free, upgrade anytime.
             </Text>
 
@@ -434,7 +441,7 @@ export default function PricingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              <PricingCard popular={plan.popular}>
+              <PricingCard $popular={plan.popular}>
                 {plan.popular && (
                   <PopularBadge>
                     <Star size={16} />
@@ -447,10 +454,10 @@ export default function PricingPage() {
                     {plan.icon}
                   </PlanIcon>
                   
-                  <Heading as="h3" size="2xl" weight="bold" mb="0.5rem" color="#1c1917">
+                  <Heading as="h3" $size="2xl" $weight="bold" $mb="0.5rem" $color="#1c1917">
                     {plan.name}
                   </Heading>
-                  <Text size="base" color="#78716c" mb="1.5rem">{plan.subtitle}</Text>
+                  <Text $size="base" $color="#78716c" $mb="1.5rem">{plan.subtitle}</Text>
                   
                   <PriceSection>
                     <PriceContainer>
@@ -464,10 +471,10 @@ export default function PricingPage() {
                     <PricePeriod>{plan.period}</PricePeriod>
                   </PriceSection>
                   
-                  <Text size="base" color="#57534e" mb="2rem">{plan.description}</Text>
+                  <Text $size="base" $color="#57534e" $mb="2rem">{plan.description}</Text>
 
                   <Button
-                    variant={plan.popular ? "primary" : plan.name === 'Enterprise' ? "secondary" : "outline"}
+                    $variant={plan.popular ? "primary" : plan.name === 'Enterprise' ? "secondary" : "outline"}
                     style={{ width: '100%', marginBottom: '2rem' }}
                   >
                     {plan.name === 'Enterprise' ? 'Contact Sales' : 'Get Started'}
@@ -478,7 +485,7 @@ export default function PricingPage() {
                   {plan.features.map((feature, featureIndex) => (
                     <FeatureItem key={featureIndex}>
                       <CheckIcon />
-                      <Text size="base" color="#44403c">{feature}</Text>
+                      <Text $size="base" $color="#44403c">{feature}</Text>
                     </FeatureItem>
                   ))}
                 </FeatureList>
@@ -490,15 +497,15 @@ export default function PricingPage() {
         {/* Features Section */}
         <FeaturesSection>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <Heading as="h2" size="4xl" weight="bold" mb="1rem" color="#1c1917">
+            <Heading as="h2" $size="4xl" $weight="bold" $mb="1rem" $color="#1c1917">
               Why Choose TheJERKTracker?
             </Heading>
-            <Text size="xl" color="#57534e" style={{ maxWidth: '600px', margin: '0 auto' }}>
+            <Text $size="xl" $color="#57534e" style={{ maxWidth: '600px', margin: '0 auto' }}>
               Built specifically for restaurants who demand reliability, security, and exceptional user experience.
             </Text>
           </div>
 
-          <Grid columns={2} gap="2rem">
+          <Grid $columns={2} $gap="2rem">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
@@ -511,10 +518,10 @@ export default function PricingPage() {
                     {feature.icon}
                   </FeatureIcon>
                   <div>
-                    <Heading as="h3" size="xl" weight="bold" mb="0.5rem" color="#1c1917">
+                    <Heading as="h3" $size="xl" $weight="bold" $mb="0.5rem" $color="#1c1917">
                       {feature.title}
                     </Heading>
-                    <Text size="base" color="#57534e" style={{ lineHeight: 1.6 }}>
+                    <Text $size="base" $color="#57534e" style={{ lineHeight: 1.6 }}>
                       {feature.description}
                     </Text>
                   </div>
@@ -526,19 +533,19 @@ export default function PricingPage() {
 
         {/* CTA Section */}
         <CTASection>
-          <Heading as="h2" size="3xl" weight="bold" mb="1.5rem" color="#1c1917">
+          <Heading as="h2" $size="3xl" $weight="bold" $mb="1.5rem" $color="#1c1917">
             Still have questions?
           </Heading>
-          <Text size="xl" color="#57534e" mb="2rem">
+          <Text $size="xl" $color="#57534e" $mb="2rem">
             Our team is here to help you choose the perfect plan for your restaurant.
           </Text>
-          <Flex justify="center" gap="1rem">
-            <Button size="lg" variant="primary">
+          <Flex $justify="center" $gap="1rem">
+            <Button $size="lg" $variant="primary">
               <Headphones size={20} style={{ marginRight: '8px' }} />
               Schedule a Demo
             </Button>
             <Link href="/admin">
-              <Button size="lg" variant="outline">
+              <Button $size="lg" $variant="outline">
                 Try It Free
               </Button>
             </Link>

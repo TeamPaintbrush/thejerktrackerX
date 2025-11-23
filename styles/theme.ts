@@ -124,12 +124,56 @@ export const theme = {
     medium: '0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
     large: '0 10px 50px -12px rgba(0, 0, 0, 0.25)',
     inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+    // Modern 2025 shadows with color
+    glow: '0 0 20px rgba(237, 119, 52, 0.3), 0 0 40px rgba(237, 119, 52, 0.1)',
+    glowSoft: '0 0 15px rgba(237, 119, 52, 0.2)',
+    elevation1: '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24)',
+    elevation2: '0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12)',
+    elevation3: '0 10px 20px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.10)',
+    elevation4: '0 15px 25px rgba(0, 0, 0, 0.15), 0 5px 10px rgba(0, 0, 0, 0.05)',
+    coloredShadow: '0 20px 40px -12px rgba(237, 119, 52, 0.25)',
   },
   
   transitions: {
     fast: '150ms ease-in-out',
     normal: '250ms ease-in-out',
     slow: '350ms ease-in-out',
+    smooth: '300ms cubic-bezier(0.4, 0, 0.2, 1)',
+    spring: '400ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+  },
+  
+  // Modern effects for 2025
+  effects: {
+    // Glass morphism
+    glassDark: 'rgba(30, 41, 59, 0.7)',
+    glassLight: 'rgba(255, 255, 255, 0.1)',
+    glassBorder: 'rgba(255, 255, 255, 0.1)',
+    blur: 'blur(20px)',
+    blurHeavy: 'blur(40px)',
+    
+    // Gradients
+    gradientPrimary: 'linear-gradient(135deg, #ed7734 0%, #f19558 100%)',
+    gradientAccent: 'linear-gradient(135deg, #f6bc89 0%, #ed7734 100%)',
+    gradientBackground: 'linear-gradient(135deg, #fef7ee 0%, #fafaf9 100%)',
+    gradientDark: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+    gradientOrange: 'linear-gradient(to right, #ed7734, #f59e0b)',
+    
+    // Overlay effects
+    overlayLight: 'rgba(255, 255, 255, 0.05)',
+    overlayDark: 'rgba(0, 0, 0, 0.3)',
+  },
+  
+  // Animation keyframes and timing
+  animations: {
+    // Hover transforms
+    hoverLift: 'translateY(-4px)',
+    hoverScale: 'scale(1.02)',
+    hoverScaleLarge: 'scale(1.05)',
+    
+    // Timing functions
+    easeSmooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    easeSpring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    easeOut: 'cubic-bezier(0, 0, 0.2, 1)',
   },
   
   breakpoints: {

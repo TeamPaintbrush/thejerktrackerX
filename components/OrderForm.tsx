@@ -7,6 +7,8 @@ import { useToast } from './Toast';
 import { Card, Heading, Grid, Flex } from '../styles/components';
 import FoodItemSelector from './FoodItemSelector';
 import { FoodItem, formatPrice } from '../lib/foodItems';
+import { LocationVerificationService, LocationVerificationResult } from '../lib/locationVerification';
+import { DynamoDBService, Location, Order as OrderType } from '../lib/dynamodb';
 
 const FormContainer = styled(Card)`
   background: white;
@@ -146,6 +148,65 @@ const SummaryTitle = styled.h4`
   margin: 0 0 0.75rem 0;
 `;
 
+const LocationStatus = styled.div<{ $status: 'verified' | 'pending' | 'failed' | 'loading' }>`
+  background: ${props => {
+    switch (props.$status) {
+      case 'verified': return '#dcfce7';
+      case 'pending': return '#fef3c7';
+      case 'failed': return '#fee2e2';
+      case 'loading': return '#f3f4f6';
+      default: return '#f3f4f6';
+    }
+  }};
+  border: 1px solid ${props => {
+    switch (props.$status) {
+      case 'verified': return '#16a34a';
+      case 'pending': return '#f59e0b';
+      case 'failed': return '#dc2626';
+      case 'loading': return '#6b7280';
+      default: return '#6b7280';
+    }
+  }};
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const LocationStatusIcon = styled.div<{ $status: 'verified' | 'pending' | 'failed' | 'loading' }>`
+  font-size: 1.25rem;
+  
+  &::before {
+    content: ${props => {
+      switch (props.$status) {
+        case 'verified': return '"✅"';
+        case 'pending': return '"⏳"';
+        case 'failed': return '"❌"';
+        case 'loading': return '"⏺️"';
+        default: return '"❓"';
+      }
+    }};
+  }
+`;
+
+const LocationStatusText = styled.div`
+  flex: 1;
+  
+  .title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #1f2937;
+  }
+  
+  .details {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+  }
+`;
+
 const SummaryItem = styled.div`
   display: flex;
   justify-content: space-between;
@@ -171,28 +232,30 @@ const ItemPrice = styled.span`
   font-weight: 500;
 `;
 
-interface Order {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  customerEmail: string;
-  orderDetails: string;
-  status: 'pending' | 'picked_up';
-  createdAt: Date;
-  driverName?: string;
-  driverCompany?: string;
-  pickedUpAt?: Date;
-}
-
 interface SelectedFoodItem extends FoodItem {
   quantity: number;
 }
 
 interface OrderFormProps {
-  onOrderCreated: (order: Order) => void;
+  onOrderCreated: (order: OrderType) => void;
+  qrCodeId?: string; // QR code ID for location verification
+  businessId?: string; // Business ID for location lookup
 }
 
-const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated }) => {
+// Helper function to get client IP address
+async function getClientIP(): Promise<string> {
+  try {
+    // In production, you might use a service like ipify
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    return data.ip || 'unknown';
+  } catch (error) {
+    console.error('Failed to get IP address:', error);
+    return 'unknown';
+  }
+}
+
+const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, qrCodeId, businessId }) => {
   const [orderNumber, setOrderNumber] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -200,6 +263,9 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [orderType, setOrderType] = useState<'preset' | 'custom'>('preset');
   const [selectedFoodItems, setSelectedFoodItems] = useState<SelectedFoodItem[]>([]);
+  const [locationVerification, setLocationVerification] = useState<LocationVerificationResult | null>(null);
+  const [availableLocations, setAvailableLocations] = useState<Location[]>([]);
+  const [isVerifyingLocation, setIsVerifyingLocation] = useState(false);
   const { addToast } = useToast();
 
   // Food item handlers
@@ -253,6 +319,31 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated }) => {
     }
   }, [selectedFoodItems, orderType]);
 
+  // Load available locations for verification
+  useEffect(() => {
+    const loadLocations = async () => {
+      if (businessId) {
+        try {
+          const locations = await DynamoDBService.getLocationsByBusinessId(businessId);
+          setAvailableLocations(locations);
+          
+          // If QR code is provided, try to verify location immediately
+          if (qrCodeId) {
+            const verification = await LocationVerificationService.verifyLocationFromQRCode(
+              qrCodeId,
+              locations
+            );
+            setLocationVerification(verification);
+          }
+        } catch (error) {
+          console.error('Failed to load locations:', error);
+        }
+      }
+    };
+
+    loadLocations();
+  }, [businessId, qrCodeId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -286,10 +377,39 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated }) => {
     setIsLoading(true);
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Step 1: Verify location
+      let verificationResult = locationVerification;
+      
+      if (!verificationResult || !verificationResult.isValid) {
+        setIsVerifyingLocation(true);
+        // Load available locations if not already loaded
+        if (businessId && availableLocations.length === 0) {
+          const locations = await DynamoDBService.getLocationsByBusinessId(businessId);
+          setAvailableLocations(locations);
+        }
+        
+        // Perform location verification
+        verificationResult = await LocationVerificationService.verifyLocationForOrder(
+          qrCodeId,
+          availableLocations.length > 0 ? availableLocations : undefined
+        );
+        
+        setLocationVerification(verificationResult);
+        setIsVerifyingLocation(false);
+      }
 
-      const newOrder: Order = {
+      if (!verificationResult.isValid) {
+        addToast({
+          type: 'error',
+          title: 'Location Verification Failed',
+          message: verificationResult.error || 'Unable to verify your location. Please try again.'
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 2: Create order with location information
+      const newOrder: OrderType = {
         id: Date.now().toString(),
         orderNumber: orderNumber.trim(),
         customerName: customerName.trim(),
@@ -297,14 +417,28 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated }) => {
         orderDetails: orderDetails.trim(),
         status: 'pending',
         createdAt: new Date(),
+        location: {
+          locationId: verificationResult.locationId || 'unknown',
+          businessId: verificationResult.businessId || businessId || 'unknown',
+          qrCodeId: qrCodeId,
+          verificationStatus: 'verified',
+          coordinates: verificationResult.coordinates,
+          ipAddress: await getClientIP(),
+          deviceInfo: LocationVerificationService.getDeviceFingerprint()
+        }
       };
+
+      // Step 3: Update location usage for billing
+      if (verificationResult.locationId) {
+        await DynamoDBService.updateLocationUsage(verificationResult.locationId, 1);
+      }
 
       onOrderCreated(newOrder);
 
       // Success toast
       addToast({
         type: 'success',
-        title: 'Order Created Successfully!',
+        title: 'Order Tracker created successfully!',
         message: `Order #${orderNumber} has been created and QR code generated.`
       });
 
@@ -330,9 +464,15 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated }) => {
 
   return (
     <FormContainer>
-      <Heading as="h2" size="2xl" weight="bold" mb="1.5rem" color="#1c1917">
+      <h2 style={{ 
+        fontSize: '1.75rem', 
+        fontWeight: 'bold', 
+        marginBottom: '1.5rem', 
+        color: '#1c1917',
+        margin: 0 
+      }}>
         Create New Order
-      </Heading>
+      </h2>
 
       {/* Order Type Toggle */}
       <OrderTypeToggle>
@@ -352,6 +492,39 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated }) => {
         </ToggleButton>
       </OrderTypeToggle>
 
+      {/* Location Verification Status */}
+      {(locationVerification || isVerifyingLocation) && (
+        <LocationStatus 
+          $status={
+            isVerifyingLocation ? 'loading' :
+            !locationVerification ? 'pending' :
+            locationVerification.isValid ? 'verified' : 'failed'
+          }
+        >
+          <LocationStatusIcon 
+            $status={
+              isVerifyingLocation ? 'loading' :
+              !locationVerification ? 'pending' :
+              locationVerification.isValid ? 'verified' : 'failed'
+            } 
+          />
+          <LocationStatusText>
+            <div className="title">
+              {isVerifyingLocation ? 'Verifying Location...' :
+               !locationVerification ? 'Location Verification Pending' :
+               locationVerification.isValid ? 'Location Verified' : 'Location Verification Failed'}
+            </div>
+            <p className="details">
+              {isVerifyingLocation ? 'Please wait while we verify your location for billing accuracy.' :
+               !locationVerification ? 'Your location will be verified when you place an order.' :
+               locationVerification.isValid ? 
+                 `Order will be processed at ${locationVerification.locationId}${locationVerification.distance ? ` (${locationVerification.distance}m away)` : ''}` :
+                 locationVerification.error || 'Unable to verify location'}
+            </p>
+          </LocationStatusText>
+        </LocationStatus>
+      )}
+
       {/* Food Item Selector - only show for preset orders */}
       {orderType === 'preset' && (
         <FoodItemSelector
@@ -359,6 +532,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated }) => {
           onItemSelect={handleFoodItemSelect}
           onItemRemove={handleFoodItemRemove}
           onClearAll={handleClearAllFoodItems}
+          businessId={businessId}
+          includePresets={true}
         />
       )}
 

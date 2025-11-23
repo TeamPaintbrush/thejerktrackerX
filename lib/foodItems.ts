@@ -6,9 +6,20 @@ export interface FoodItem {
   category: string;
   image?: string;
   popular?: boolean;
-  spiceLevel?: 'mild' | 'medium' | 'hot' | 'extra-hot';
+  spiceLevel?: 'none' | 'mild' | 'medium' | 'hot' | 'extra-hot';
   allergens?: string[];
   preparationTime?: number; // in minutes
+  // Extended fields for database items
+  businessId?: string;
+  customCategory?: string;
+  dietary?: ('vegetarian' | 'vegan' | 'gluten-free' | 'dairy-free' | 'halal' | 'kosher')[];
+  availability?: {
+    isAvailable: boolean;
+    availableDays?: string[];
+    availableTimeSlots?: { start: string; end: string }[];
+  };
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface FoodCategory {
@@ -17,7 +28,6 @@ export interface FoodCategory {
   description?: string;
   icon?: string;
 }
-
 export const FOOD_CATEGORIES: FoodCategory[] = [
   {
     id: 'mains',
@@ -288,7 +298,7 @@ export const PRESET_FOOD_ITEMS: FoodItem[] = [
   }
 ];
 
-// Helper functions
+// Helper functions for preset items (legacy support)
 export const getFoodItemsByCategory = (categoryId: string): FoodItem[] => {
   return PRESET_FOOD_ITEMS.filter(item => item.category === categoryId);
 };
@@ -306,6 +316,53 @@ export const searchFoodItems = (query: string): FoodItem[] => {
   return PRESET_FOOD_ITEMS.filter(item => 
     item.name.toLowerCase().includes(lowercaseQuery) ||
     item.description.toLowerCase().includes(lowercaseQuery)
+  );
+};
+
+// Helper functions for dynamic menu items (database + presets)
+/**
+ * Merge preset items with database items
+ * Database items take precedence over presets with same ID
+ */
+export const mergeFoodItems = (dbItems: FoodItem[], includePresets = true): FoodItem[] => {
+  if (!includePresets) return dbItems;
+  
+  const merged = [...dbItems];
+  const dbIds = new Set(dbItems.map(item => item.id));
+  
+  // Add preset items that aren't overridden by database items
+  PRESET_FOOD_ITEMS.forEach(preset => {
+    if (!dbIds.has(preset.id)) {
+      merged.push(preset);
+    }
+  });
+  
+  return merged;
+};
+
+/**
+ * Get all food items (database + presets) by category
+ */
+export const getAllFoodItemsByCategory = (allItems: FoodItem[], categoryId: string): FoodItem[] => {
+  return allItems.filter(item => item.category === categoryId);
+};
+
+/**
+ * Get popular items from merged list
+ */
+export const getAllPopularFoodItems = (allItems: FoodItem[]): FoodItem[] => {
+  return allItems.filter(item => item.popular);
+};
+
+/**
+ * Search across all items (database + presets)
+ */
+export const searchAllFoodItems = (allItems: FoodItem[], query: string): FoodItem[] => {
+  const lowercaseQuery = query.toLowerCase();
+  return allItems.filter(item => 
+    item.name.toLowerCase().includes(lowercaseQuery) ||
+    item.description.toLowerCase().includes(lowercaseQuery) ||
+    item.allergens?.some(allergen => allergen.toLowerCase().includes(lowercaseQuery))
   );
 };
 

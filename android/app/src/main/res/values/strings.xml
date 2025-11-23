@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">JERK Tracker X</string>
+    <string name="title_activity_main">JERK Tracker X</string>
+    <string name="package_name">com.thejerktrackerx.app</string>
+    <string name="custom_url_scheme">com.thejerktrackerx.app</string>
+</resources>

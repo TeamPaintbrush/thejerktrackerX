@@ -45,6 +45,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@types/styled-components": "^5.1.34",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^17.2.3",
     "framer-motion": "^12.23.19",
     "lucide-react": "^0.544.0",
     "next": "15.5.4",

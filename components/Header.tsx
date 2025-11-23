@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { User, RefreshCw, LogOut } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+import { User, RefreshCw, LogOut, Settings, Home } from 'lucide-react';
 import styled from 'styled-components';
 
 const HeaderContainer = styled.header`
@@ -28,6 +29,18 @@ const HeaderContent = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 1rem 0;
+  flex-wrap: nowrap;
+  
+  /* Mobile adjustments to keep horizontal layout */
+  @media (max-width: 768px) {
+    padding: 0.75rem 0;
+    gap: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.5rem 0;
+    gap: 0.5rem;
+  }
 `;
 
 const HeaderInfo = styled.div``;
@@ -49,6 +62,17 @@ const HeaderNav = styled.nav`
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-wrap: nowrap;
+  
+  /* Ensure horizontal layout on all screen sizes */
+  @media (max-width: 768px) {
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 0.25rem;
+  }
 `;
 
 const UserInfo = styled.div`
@@ -59,17 +83,6 @@ const UserInfo = styled.div`
 
   svg {
     margin-right: 0.25rem;
-  }
-`;
-
-const AutoRefreshStatus = styled.div`
-  display: flex;
-  align-items: center;
-  font-size: ${({ theme }) => theme.typography.fontSize.sm};
-  color: ${({ theme }) => theme.colors.text.secondary};
-
-  span:last-child {
-    color: ${({ theme }) => theme.colors.warning[500]};
   }
 `;
 
@@ -118,14 +131,18 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'danger' }>`
 `;
 
 const Header: React.FC = () => {
+  const { data: session, status } = useSession();
+
   const handleRefresh = () => {
     window.location.reload();
   };
 
   const handleSignOut = () => {
-    // Add sign out logic here
-    window.location.href = '/';
+    signOut({ callbackUrl: '/' });
   };
+
+  const isAdmin = session?.user?.role === 'admin';
+  const isAuthenticated = !!session;
 
   return (
     <HeaderContainer role="banner">
@@ -133,35 +150,63 @@ const Header: React.FC = () => {
         <HeaderContent>
           <HeaderInfo>
             <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <HeaderTitle style={{ cursor: 'pointer' }}>Admin Dashboard</HeaderTitle>
+              <HeaderTitle style={{ cursor: 'pointer' }}>JERK Tracker</HeaderTitle>
             </Link>
-            <HeaderSubtitle>Manage orders and track pickups</HeaderSubtitle>
+            <HeaderSubtitle>
+              {isAdmin ? 'Admin Dashboard - Manage orders and track pickups' : 'Mobile Restaurant Management'}
+            </HeaderSubtitle>
           </HeaderInfo>
-          <HeaderNav role="navigation" aria-label="Admin actions">
-            <UserInfo aria-label="Current user">
-              <User size={16} aria-hidden="true" />
-              <span>Admin User</span>
-            </UserInfo>
-            <AutoRefreshStatus aria-label="Auto-refresh status">
-              <span>Auto-refresh</span>
-              <span aria-label="Auto-refresh is currently off">⚪ OFF</span>
-            </AutoRefreshStatus>
-            <ActionButton
-              $variant="primary"
-              onClick={handleRefresh}
-              aria-label="Refresh page"
-            >
-              <RefreshCw size={16} aria-hidden="true" />
-              Refresh
-            </ActionButton>
-            <ActionButton
-              $variant="danger"
-              onClick={handleSignOut}
-              aria-label="Sign out of admin dashboard"
-            >
-              <LogOut size={16} aria-hidden="true" />
-              Sign Out
-            </ActionButton>
+          <HeaderNav role="navigation" aria-label="Main navigation">
+            {isAuthenticated ? (
+              <>
+                <UserInfo aria-label="Current user">
+                  <User size={16} aria-hidden="true" />
+                  <span>{session.user?.name || session.user?.email}</span>
+                </UserInfo>
+
+                {!isAdmin && (
+                  <Link href="/admin" style={{ textDecoration: 'none' }}>
+                    <ActionButton $variant="primary" as="div" style={{ cursor: 'pointer' }}>
+                      <Home size={16} aria-hidden="true" />
+                      Dashboard
+                    </ActionButton>
+                  </Link>
+                )}
+
+                {isAdmin && (
+                  <ActionButton
+                    $variant="primary"
+                    onClick={handleRefresh}
+                    aria-label="Refresh page"
+                  >
+                    <RefreshCw size={16} aria-hidden="true" />
+                    Refresh
+                  </ActionButton>
+                )}
+
+                <ActionButton
+                  $variant="danger"
+                  onClick={handleSignOut}
+                  aria-label="Sign out"
+                >
+                  <LogOut size={16} aria-hidden="true" />
+                  Sign Out
+                </ActionButton>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/signin" style={{ textDecoration: 'none' }}>
+                  <ActionButton $variant="primary" as="div" style={{ cursor: 'pointer' }}>
+                    Sign In
+                  </ActionButton>
+                </Link>
+                <Link href="/auth/signup" style={{ textDecoration: 'none' }}>
+                  <ActionButton $variant="primary" as="div" style={{ cursor: 'pointer', background: '#16a34a' }}>
+                    Sign Up
+                  </ActionButton>
+                </Link>
+              </>
+            )}
           </HeaderNav>
         </HeaderContent>
       </HeaderWrapper>

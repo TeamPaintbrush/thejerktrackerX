@@ -32,6 +32,16 @@ const Header = styled.div`
   margin-bottom: 3rem;
 `;
 
+const DemoNotice = styled.div`
+  background: linear-gradient(135deg, #ed7734 0%, #de5d20 100%);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 0.75rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(237, 119, 52, 0.2);
+`;
+
 const Title = styled.h1`
   font-size: 2.5rem;
   font-weight: bold;
@@ -307,7 +317,12 @@ export default function QRTestPage() {
         customerName: 'QR Test Customer',
         customerEmail: 'test@qrtest.com',
         orderDetails: 'Test QR Code Order - 1x Jerk Chicken Combo',
-        status: 'pending'
+        status: 'pending',
+        location: {
+          locationId: 'test-location-001',
+          businessId: 'test-business-001',
+          verificationStatus: 'verified'
+        }
       };
 
       createdOrder = await DynamoDBService.createOrder(newOrder);
@@ -390,9 +405,18 @@ export default function QRTestPage() {
     <PageContainer>
       <ContentWrapper>
         <Header>
-          <Title>🧪 QR Code System Test - GitHub Pages</Title>
+          <DemoNotice>
+            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 'bold' }}>
+              🎯 Demo Mode - For App Review
+            </h3>
+            <p style={{ margin: '0', fontSize: '0.95rem', opacity: '0.9' }}>
+              This is a public demo of the QR tracking system. No login required! 
+              For full app access, use: admin@jerktrackerx.com / admin123
+            </p>
+          </DemoNotice>
+          <Title>🧪 QR Code System Test</Title>
           <Subtitle>
-            Comprehensive testing of the QR Code workflow on GitHub Pages deployment
+            Interactive demo of the restaurant QR tracking system - Try scanning QR codes and tracking orders!
           </Subtitle>
           <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
             <strong>Environment:</strong> {process.env.NODE_ENV === 'production' ? 'Production (GitHub Pages)' : 'Development'}

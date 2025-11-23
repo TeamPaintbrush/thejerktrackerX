@@ -1,15 +1,35 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  trailingSlash: true,
-  // Only use basePath and assetPrefix for production builds
-  ...(process.env.NODE_ENV === 'production' && {
-    basePath: '/thejerktrackerX',
-    assetPrefix: '/thejerktrackerX',
-  }),
   images: {
     unoptimized: true,
   },
+  // Enable styled-components support natively
+  compiler: {
+    styledComponents: {
+      displayName: process.env.NODE_ENV !== 'production',
+      ssr: true,
+      fileName: process.env.NODE_ENV !== 'production',
+      topLevelImportPaths: [],
+      meaninglessFileNames: ["index"],
+      cssProp: true,
+      namespace: "jt-app",
+      minify: process.env.NODE_ENV === 'production',
+      transpileTemplateLiterals: true,
+    },
+  },
+  // Suppress hydration warnings for styled-components
+  reactStrictMode: false,
+  // Static export enabled ONLY for mobile Capacitor builds (not for web dev)
+  // Use `npm run build:mobile` for mobile builds with static export
+  // Use `npm run build` or `npm run dev` for web app with NextAuth support
+  output: process.env.BUILD_TARGET === 'mobile' ? 'export' : undefined,
+  trailingSlash: true,
+  // Skip API routes and dynamic routes during static export for mobile
+  ...(process.env.BUILD_TARGET === 'mobile' && {
+    experimental: {
+      missingSuspenseWithCSRBailout: false,
+    },
+  }),
 }
 
 module.exports = nextConfig

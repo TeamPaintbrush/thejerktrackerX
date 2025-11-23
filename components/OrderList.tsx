@@ -11,6 +11,11 @@ import { Order } from '../lib/dynamodb';
 const OrderListContainer = styled(Card)`
   background: white;
   border: 1px solid #e7e5e4;
+  /* Mobile overflow prevention */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 `;
 
 const ListHeader = styled.div`
@@ -291,12 +296,39 @@ const DateLabel = styled.label`
 
 const TableContainer = styled.div`
   overflow-x: auto;
+  /* Enhanced mobile table scrolling */
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  
+  @media (max-width: 768px) {
+    /* On mobile, make the table container more obvious it can scroll */
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 2px;
+    }
+  }
 `;
 
 const OrderTableStyled = styled.table`
   width: 100%;
-  min-width: 100%;
+  min-width: 600px; /* Minimum width to ensure table functionality */
   border-collapse: collapse;
+  
+  @media (max-width: 768px) {
+    /* On mobile, allow table to be wider than viewport but contained in scroll container */
+    min-width: 700px;
+  }
 `;
 
 const TableHead = styled.thead`

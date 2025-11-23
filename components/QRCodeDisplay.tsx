@@ -10,6 +10,15 @@ const QRContainer = styled.div`
   border-radius: 12px;
   box-shadow: ${({ theme }) => theme.shadows.medium};
   text-align: center;
+  /* Mobile overflow prevention */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
 const QRTitle = styled.h3`
@@ -67,31 +76,99 @@ const PrintButton = styled.button`
 interface QRCodeDisplayProps {
   orderId: string;
   orderNumber: string;
+  compact?: boolean;
+  size?: number;
+  showTitle?: boolean;
+  showDescription?: boolean;
+  showUrl?: boolean;
+  showPrintButton?: boolean;
 }
 
-const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ orderId, orderNumber }) => {
+const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ 
+  orderId, 
+  orderNumber,
+  compact = false,
+  size = 200,
+  showTitle = true,
+  showDescription = true,
+  showUrl = true,
+  showPrintButton = true
+}) => {
   const basePath = process.env.NODE_ENV === 'production' ? '/thejerktrackerX' : '';
   const orderUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}${basePath}/order?id=${orderId}`;
 
+  if (compact) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '1rem', 
+        padding: '1rem',
+        background: 'white',
+        borderRadius: '8px',
+        border: '1px solid #e5e7eb'
+      }}>
+        <div>
+          <QRCodeCanvas value={orderUrl} size={size} />
+        </div>
+        <div style={{ flex: 1 }}>
+          {showTitle && (
+            <h4 style={{ 
+              margin: '0 0 0.5rem 0', 
+              fontSize: '1.125rem', 
+              fontWeight: '600',
+              color: '#111827'
+            }}>
+              QR Code for Order #{orderNumber}
+            </h4>
+          )}
+          {showDescription && (
+            <p style={{ 
+              margin: '0 0 0.5rem 0', 
+              fontSize: '0.875rem', 
+              color: '#6b7280' 
+            }}>
+              Scan to access this order page
+            </p>
+          )}
+          {showUrl && (
+            <QRLink
+              href={orderUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: '0.75rem' }}
+            >
+              {orderUrl.length > 50 ? `${orderUrl.substring(0, 50)}...` : orderUrl}
+            </QRLink>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <QRContainer>
-      <QRTitle>Order #{orderNumber}</QRTitle>
+      {showTitle && <QRTitle>Order #{orderNumber}</QRTitle>}
       <QRWrapper>
-        <QRCodeCanvas value={orderUrl} size={200} />
+        <QRCodeCanvas value={orderUrl} size={size} />
       </QRWrapper>
-      <QRDescription>Scan this QR code to check in the order</QRDescription>
-      <QRLink
-        href={orderUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {orderUrl}
-      </QRLink>
-      <div>
-        <PrintButton onClick={() => window.print()}>
-          Print Receipt
-        </PrintButton>
-      </div>
+      {showDescription && <QRDescription>Scan this QR code to check in the order</QRDescription>}
+      {showUrl && (
+        <QRLink
+          href={orderUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {orderUrl}
+        </QRLink>
+      )}
+      {showPrintButton && (
+        <div>
+          <PrintButton onClick={() => window.print()}>
+            Print Receipt
+          </PrintButton>
+        </div>
+      )}
     </QRContainer>
   );
 };

@@ -49,7 +49,7 @@ class MobileAuthService {
 
     try {
       const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').replace(/\/$/, '');
-      const loginUrl = API_BASE_URL ? `${API_BASE_URL}/api/auth/login` : '/api/auth/login';
+      const loginUrl = API_BASE_URL ? `${API_BASE_URL}/api/mobile-auth/login/` : '/api/mobile-auth/login/';
 
       const response = await fetch(loginUrl, {
         method: 'POST',
@@ -86,7 +86,7 @@ class MobileAuthService {
 
     try {
       const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').replace(/\/$/, '');
-      const signupUrl = API_BASE_URL ? `${API_BASE_URL}/api/auth/signup` : '/api/auth/signup';
+      const signupUrl = API_BASE_URL ? `${API_BASE_URL}/api/mobile-auth/signup/` : '/api/mobile-auth/signup/';
 
       const response = await fetch(signupUrl, {
         method: 'POST',

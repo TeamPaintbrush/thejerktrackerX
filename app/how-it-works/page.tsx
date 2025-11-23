@@ -12,7 +12,10 @@ import {
   User, 
   Package,
   ArrowRight,
-  Home
+  ArrowLeft,
+  Home,
+  Menu,
+  X
 } from 'lucide-react';
 import { Container, Button, Heading, Text, Flex, Grid, Card } from '../../styles/components';
 
@@ -20,6 +23,14 @@ const PageContainer = styled.div`
   min-height: 100vh;
   background: linear-gradient(135deg, #fafaf9 0%, #f5f5f4 100%);
   padding: 2rem 0;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 1rem 0;
+  }
 `;
 
 const HeroSection = styled.div`
@@ -173,7 +184,7 @@ const FeatureIcon = styled.div`
   margin: 0 auto 1rem;
 `;
 
-const BackButton = styled(Button)`
+const BackButton = styled.button`
   background: linear-gradient(135deg, #ed7734 0%, #de5d20 100%);
   color: white;
   border: none;
@@ -185,10 +196,16 @@ const BackButton = styled(Button)`
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
+  cursor: pointer;
+  font-size: 1rem;
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(237, 119, 52, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
@@ -233,9 +250,138 @@ const MockButton = styled.div`
   font-weight: 500;
 `;
 
+// Navigation Styles
+const Navigation = styled.nav`
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #e7e5e4;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  position: relative;
+`;
+
+const NavContainer = styled(Container)`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 80px;
+`;
+
+const BackLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #78716c;
+  text-decoration: none;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #ed7734;
+  }
+`;
+
+const LogoIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #ed7734 0%, #de5d20 100%);
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1.125rem;
+`;
+
+const Logo = styled(Flex)`
+  align-items: center;
+  gap: 1rem;
+`;
+
+const NavMenu = styled.div<{ $isOpen?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+
+  @media (max-width: 768px) {
+    display: ${({ $isOpen }) => ($isOpen ? 'flex' : 'none')};
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    flex-direction: column;
+    padding: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-top: 1px solid #e7e5e4;
+    gap: 1rem;
+  }
+`;
+
+const NavLink = styled(Link)`
+  text-decoration: none;
+  color: #6b7280;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  
+  &:hover {
+    color: #ed7734;
+  }
+`;
+
+const NavButton = styled(Link)`
+  background: linear-gradient(135deg, #ed7734 0%, #de5d20 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(237, 119, 52, 0.3);
+  }
+`;
+
+const MobileMenuButton = styled.button`
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  
+  @media (max-width: 768px) {
+    display: block;
+  }
+`;
+
 export default function HowItWorksPage() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
   return (
     <PageContainer>
+      {/* Navigation */}
+      <Navigation>
+        <NavContainer>
+          <BackLink href="/">
+            <ArrowLeft size={20} />
+            <Logo>
+              <LogoIcon>JT</LogoIcon>
+              <div>
+                <Heading as="h1" $size="xl" $mb="0" $weight="bold" $color="#1c1917">TheJERKTracker</Heading>
+                <Text $size="sm" $color="#78716c">Restaurant Solutions</Text>
+              </div>
+            </Logo>
+          </BackLink>
+          
+          <Link href="/admin">
+            <Button $variant="primary">Launch Dashboard</Button>
+          </Link>
+        </NavContainer>
+      </Navigation>
+
       {/* Hero Section */}
       <HeroSection>
         <Container>
@@ -244,13 +390,13 @@ export default function HowItWorksPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <HeroTitle as="h1" size="4xl" weight="bold">
+            <HeroTitle as="h1" $size="4xl" $weight="bold">
               📱 Driver &quot;Picked Up&quot; Process
             </HeroTitle>
-            <HeroTitle as="h2" size="3xl" weight="bold">
+            <HeroTitle as="h2" $size="3xl" $weight="bold">
               Complete QR Code Workflow
             </HeroTitle>
-            <HeroSubtitle size="lg" color="#78716c">
+            <HeroSubtitle $size="lg" $color="#78716c">
               A seamless, contactless pickup system that streamlines order management 
               and delivery coordination through QR code technology.
             </HeroSubtitle>
@@ -265,40 +411,40 @@ export default function HowItWorksPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <Heading as="h3" size="2xl" weight="bold" mb="2rem" style={{ textAlign: 'center' }}>
+          <Heading as="h3" $size="2xl" $weight="bold" $mb="2rem" style={{ textAlign: 'center' }}>
             How It Works - Step by Step
           </Heading>
           
           <ProcessFlow>
             <FlowStep>
               <FlowIcon><Package size={20} /></FlowIcon>
-              <Text size="sm" weight="medium">Order Created</Text>
+              <Text $size="sm" $weight="medium">Order Created</Text>
             </FlowStep>
             <FlowArrow size={20} />
             <FlowStep>
               <FlowIcon><QrCode size={20} /></FlowIcon>
-              <Text size="sm" weight="medium">QR Generated</Text>
+              <Text $size="sm" $weight="medium">QR Generated</Text>
             </FlowStep>
             <FlowArrow size={20} />
             <FlowStep>
               <FlowIcon><Smartphone size={20} /></FlowIcon>
-              <Text size="sm" weight="medium">Driver Scans</Text>
+              <Text $size="sm" $weight="medium">Driver Scans</Text>
             </FlowStep>
             <FlowArrow size={20} />
             <FlowStep>
               <FlowIcon><User size={20} /></FlowIcon>
-              <Text size="sm" weight="medium">Check-in Form</Text>
+              <Text $size="sm" $weight="medium">Check-in Form</Text>
             </FlowStep>
             <FlowArrow size={20} />
             <FlowStep>
               <FlowIcon><CheckCircle size={20} /></FlowIcon>
-              <Text size="sm" weight="medium">Pickup Confirmed</Text>
+              <Text $size="sm" $weight="medium">Pickup Confirmed</Text>
             </FlowStep>
           </ProcessFlow>
         </motion.div>
 
         {/* Detailed Steps */}
-        <Grid gap="2rem" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', margin: '4rem 0' }}>
+        <Grid $gap="2rem" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', margin: '4rem 0' }}>
           {/* Step 1 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -310,10 +456,10 @@ export default function HowItWorksPage() {
               <StepIcon>
                 <Package size={40} />
               </StepIcon>
-              <StepTitle as="h4" size="xl" weight="semibold">
+              <StepTitle as="h4" $size="xl" $weight="semibold">
                 📋 Restaurant Creates Order
               </StepTitle>
-              <StepDescription size="base" color="#78716c">
+              <StepDescription $size="base" $color="#78716c">
                 Restaurant staff creates an order through the admin dashboard. They can choose 
                 between preset menu items (like Jerk Chicken Combo, Rice & Peas) or create 
                 custom orders. The system automatically generates a unique order ID and QR code.
@@ -332,10 +478,10 @@ export default function HowItWorksPage() {
               <StepIcon>
                 <QrCode size={40} />
               </StepIcon>
-              <StepTitle as="h4" size="xl" weight="semibold">
+              <StepTitle as="h4" $size="xl" $weight="semibold">
                 🚚 Driver Receives Order & Scans QR Code
               </StepTitle>
-              <StepDescription size="base" color="#78716c">
+              <StepDescription $size="base" $color="#78716c">
                 Driver arrives at the restaurant to pick up the order. They scan the QR code 
                 (displayed on receipt, screen, or printout) using their phone camera or QR 
                 scanner app. The QR code instantly opens the order page in their browser.
@@ -354,10 +500,10 @@ export default function HowItWorksPage() {
               <StepIcon>
                 <Smartphone size={40} />
               </StepIcon>
-              <StepTitle as="h4" size="xl" weight="semibold">
+              <StepTitle as="h4" $size="xl" $weight="semibold">
                 📱 Driver Check-in Page Opens
               </StepTitle>
-              <StepDescription size="base" color="#78716c">
+              <StepDescription $size="base" $color="#78716c">
                 The QR code opens a mobile-optimized page showing order details (customer name, 
                 order contents, total price) and a Driver Check-in Form. The driver can verify 
                 they have the correct order before proceeding.
@@ -376,10 +522,10 @@ export default function HowItWorksPage() {
               <StepIcon>
                 <User size={40} />
               </StepIcon>
-              <StepTitle as="h4" size="xl" weight="semibold">
+              <StepTitle as="h4" $size="xl" $weight="semibold">
                 ✅ Driver Confirms Pickup
               </StepTitle>
-              <StepDescription size="base" color="#78716c">
+              <StepDescription $size="base" $color="#78716c">
                 Driver fills out a simple form with their name and delivery company 
                 (UberEats, DoorDash, Grubhub, etc.), then clicks &quot;Confirm Pickup&quot;. 
                 The system instantly updates the order status and records pickup details.
@@ -398,10 +544,10 @@ export default function HowItWorksPage() {
               <StepIcon>
                 <CheckCircle size={40} />
               </StepIcon>
-              <StepTitle as="h4" size="xl" weight="semibold">
+              <StepTitle as="h4" $size="xl" $weight="semibold">
                 📊 Admin Dashboard Updates
               </StepTitle>
-              <StepDescription size="base" color="#78716c">
+              <StepDescription $size="base" $color="#78716c">
                 Restaurant staff immediately sees the order status change to &quot;Picked Up&quot; 
                 in their admin dashboard. The system shows driver details, pickup time, 
                 and complete order timeline for full tracking visibility.
@@ -413,27 +559,27 @@ export default function HowItWorksPage() {
         {/* Example Section */}
         <ExampleSection>
           <Container>
-            <Heading as="h3" size="2xl" weight="bold" mb="2rem" style={{ textAlign: 'center' }}>
+            <Heading as="h3" $size="2xl" $weight="bold" $mb="2rem" style={{ textAlign: 'center' }}>
               Driver Check-in Form Example
             </Heading>
-            <Text size="base" color="#78716c" mb="2rem" style={{ textAlign: 'center' }}>
+            <Text $size="base" $color="#78716c" $mb="2rem" style={{ textAlign: 'center' }}>
               This is what drivers see when they scan the QR code:
             </Text>
             
             <ExampleCard>
-              <Heading as="h4" size="lg" weight="semibold" mb="1rem" style={{ textAlign: 'center' }}>
+              <Heading as="h4" $size="lg" $weight="semibold" $mb="1rem" style={{ textAlign: 'center' }}>
                 Order #12345
               </Heading>
-              <Flex align="center" gap="0.5rem" style={{ justifyContent: 'center', marginBottom: '1rem' }}>
+              <Flex $align="center" $gap="0.5rem" style={{ justifyContent: 'center', marginBottom: '1rem' }}>
                 <User size={16} />
-                <Text size="sm" color="#78716c">John Smith</Text>
+                <Text $size="sm" $color="#78716c">John Smith</Text>
                 <Clock size={16} style={{ marginLeft: '1rem' }} />
-                <Text size="sm" color="#78716c">2:30 PM</Text>
+                <Text $size="sm" $color="#78716c">2:30 PM</Text>
               </Flex>
               
               <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
-                <Text size="sm" weight="medium" mb="0.5rem">Order Details:</Text>
-                <Text size="sm" color="#78716c">
+                <Text $size="sm" $weight="medium" $mb="0.5rem">Order Details:</Text>
+                <Text $size="sm" $color="#78716c">
                   2x Jerk Chicken Combo - $29.98<br />
                   1x Rice & Peas - $4.99<br />
                   1x Sweet Plantains - $3.99<br />
@@ -441,7 +587,7 @@ export default function HowItWorksPage() {
                 </Text>
               </div>
 
-              <Heading as="h5" size="base" weight="semibold" mb="1rem">
+              <Heading as="h5" $size="base" $weight="semibold" $mb="1rem">
                 Driver Check-in
               </Heading>
               
@@ -460,7 +606,7 @@ export default function HowItWorksPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.8 }}
         >
-          <Heading as="h3" size="2xl" weight="bold" mb="2rem" style={{ textAlign: 'center' }}>
+          <Heading as="h3" $size="2xl" $weight="bold" $mb="2rem" style={{ textAlign: 'center' }}>
             🎯 Key Benefits
           </Heading>
           
@@ -469,10 +615,10 @@ export default function HowItWorksPage() {
               <FeatureIcon>
                 <QrCode size={24} />
               </FeatureIcon>
-              <Heading as="h4" size="lg" weight="semibold" mb="1rem">
+              <Heading as="h4" $size="lg" $weight="semibold" $mb="1rem">
                 Contactless Process
               </Heading>
-              <Text size="sm" color="#78716c">
+              <Text $size="sm" $color="#78716c">
                 No physical paperwork or face-to-face interaction required. 
                 Everything happens through QR code scanning and mobile forms.
               </Text>
@@ -482,10 +628,10 @@ export default function HowItWorksPage() {
               <FeatureIcon>
                 <Clock size={24} />
               </FeatureIcon>
-              <Heading as="h4" size="lg" weight="semibold" mb="1rem">
+              <Heading as="h4" $size="lg" $weight="semibold" $mb="1rem">
                 Real-Time Updates
               </Heading>
-              <Text size="sm" color="#78716c">
+              <Text $size="sm" $color="#78716c">
                 Order status changes instantly when drivers confirm pickup. 
                 Restaurant staff see updates immediately in their dashboard.
               </Text>
@@ -495,10 +641,10 @@ export default function HowItWorksPage() {
               <FeatureIcon>
                 <Smartphone size={24} />
               </FeatureIcon>
-              <Heading as="h4" size="lg" weight="semibold" mb="1rem">
+              <Heading as="h4" $size="lg" $weight="semibold" $mb="1rem">
                 Mobile Optimized
               </Heading>
-              <Text size="sm" color="#78716c">
+              <Text $size="sm" $color="#78716c">
                 Designed specifically for mobile devices. Fast loading, 
                 touch-friendly interface, and works with any QR scanner app.
               </Text>
@@ -508,10 +654,10 @@ export default function HowItWorksPage() {
               <FeatureIcon>
                 <CheckCircle size={24} />
               </FeatureIcon>
-              <Heading as="h4" size="lg" weight="semibold" mb="1rem">
+              <Heading as="h4" $size="lg" $weight="semibold" $mb="1rem">
                 Complete Tracking
               </Heading>
-              <Text size="sm" color="#78716c">
+              <Text $size="sm" $color="#78716c">
                 Full audit trail with driver names, companies, and pickup times. 
                 Perfect for delivery management and customer service.
               </Text>
@@ -526,8 +672,8 @@ export default function HowItWorksPage() {
           transition={{ duration: 0.6, delay: 1.0 }}
           style={{ textAlign: 'center', marginTop: '4rem' }}
         >
-          <Link href="/" passHref>
-            <BackButton as="a">
+          <Link href="/">
+            <BackButton>
               <Home size={20} />
               Back to Home
             </BackButton>

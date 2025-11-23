@@ -11,7 +11,7 @@ async function testSignup() {
 
     const options = {
       hostname: 'thejerktracker0.vercel.app',
-      path: '/api/auth/signup/',
+      path: '/api/mobile-auth/signup/',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ async function testLogin() {
 
     const options = {
       hostname: 'thejerktracker0.vercel.app',
-      path: '/api/auth/login/',
+      path: '/api/mobile-auth/login/',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
