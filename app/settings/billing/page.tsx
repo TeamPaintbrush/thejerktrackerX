@@ -5,14 +5,13 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import styled from 'styled-components'
 import { BillingService, BillingPlan, BillingUsage } from '@/lib/billingService'
-import { hasPermission } from '@/lib/roles'
 import { User } from '@/lib/dynamodb'
-import Header from '@/components/Header'
 import { LoadingSpinner } from '@/components/Loading'
+import BackButton from '@/components/settings/BackButton'
 
 const Container = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ed7734 0%, #de5d20 100%);
   padding: 20px;
   
   @media (max-width: 768px) {
@@ -84,7 +83,7 @@ const UsageMeter = styled.div`
   margin: 15px 0;
 `
 
-const MeterBar = styled.div<{ percentage: number; isOverage: boolean }>`
+const MeterBar = styled.div<{ $percentage: number; $isOverage: boolean }>`
   width: 100%;
   height: 8px;
   background: #f3f4f6;
@@ -94,9 +93,9 @@ const MeterBar = styled.div<{ percentage: number; isOverage: boolean }>`
   &::after {
     content: '';
     display: block;
-    width: ${props => Math.min(props.percentage, 100)}%;
+    width: ${props => Math.min(props.$percentage, 100)}%;
     height: 100%;
-    background: ${props => props.isOverage ? '#ef4444' : props.percentage > 80 ? '#f59e0b' : '#10b981'};
+    background: ${props => props.$isOverage ? '#ef4444' : props.$percentage > 80 ? '#f59e0b' : '#10b981'};
     transition: width 0.3s ease;
   }
 `
@@ -113,7 +112,7 @@ const MeterLabel = styled.div`
 const StatValue = styled.div`
   font-size: 32px;
   font-weight: 700;
-  color: #667eea;
+  color: #ed7734;
   margin-bottom: 5px;
 `
 
@@ -124,15 +123,15 @@ const StatLabel = styled.div`
   font-weight: 600;
 `
 
-const PlanCard = styled(Card)<{ isSelected?: boolean }>`
-  border: ${props => props.isSelected ? '2px solid #667eea' : '1px solid #e1e5e9'};
+const PlanCard = styled(Card)<{ $isSelected?: boolean }>`
+  border: ${props => props.$isSelected ? '2px solid #ed7734' : '1px solid #e1e5e9'};
   position: relative;
-  cursor: ${props => props.isSelected ? 'default' : 'pointer'};
+  cursor: ${props => props.$isSelected ? 'default' : 'pointer'};
   transition: all 0.3s ease;
   
   &:hover {
-    transform: ${props => props.isSelected ? 'none' : 'translateY(-2px)'};
-    box-shadow: ${props => props.isSelected ? '0 2px 8px rgba(0, 0, 0, 0.05)' : '0 4px 16px rgba(0, 0, 0, 0.1)'};
+    transform: ${props => props.$isSelected ? 'none' : 'translateY(-2px)'};
+    box-shadow: ${props => props.$isSelected ? '0 2px 8px rgba(0, 0, 0, 0.05)' : '0 4px 16px rgba(0, 0, 0, 0.1)'};
   }
 `
 
@@ -140,7 +139,7 @@ const CurrentPlanBadge = styled.div`
   position: absolute;
   top: -10px;
   right: 20px;
-  background: #667eea;
+  background: #ed7734;
   color: white;
   padding: 4px 12px;
   border-radius: 20px;
@@ -200,7 +199,7 @@ const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
   transition: all 0.3s ease;
   
   ${props => props.variant === 'primary' ? `
-    background: #667eea;
+    background: #ed7734;
     color: white;
     
     &:hover:not(:disabled) {
@@ -208,11 +207,11 @@ const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
     }
   ` : `
     background: transparent;
-    color: #667eea;
-    border: 2px solid #667eea;
+    color: #ed7734;
+    border: 2px solid #ed7734;
     
     &:hover:not(:disabled) {
-      background: #667eea;
+      background: #ed7734;
       color: white;
     }
   `}
@@ -269,7 +268,7 @@ const BillingToggle = styled.div`
     transition: background 0.3s ease;
     
     &:checked {
-      background: #667eea;
+      background: #ed7734;
     }
     
     &::after {
@@ -328,12 +327,6 @@ export default function BillingPage() {
       return
     }
 
-    const user = session.user as User
-    if (!hasPermission(user.role, 'locations:billing')) {
-      router.push('/')
-      return
-    }
-
     loadBillingData()
   }, [session, status, router, loadBillingData])
 
@@ -364,8 +357,8 @@ export default function BillingPage() {
 
   return (
     <Container>
-      <Header />
       <ContentWrapper>
+        <BackButton />
         <PageHeader>
           <h1>Billing & Usage</h1>
           <p>Manage your subscription and track location-based usage</p>
@@ -396,8 +389,8 @@ export default function BillingPage() {
               </CardHeader>
               <UsageMeter>
                 <MeterBar 
-                  percentage={(usageSummary.locationsUsed / usageSummary.locationsLimit) * 100}
-                  isOverage={usageSummary.locationsUsed > usageSummary.locationsLimit}
+                  $percentage={(usageSummary.locationsUsed / usageSummary.locationsLimit) * 100}
+                  $isOverage={usageSummary.locationsUsed > usageSummary.locationsLimit}
                 />
                 <MeterLabel>
                   <span>{usageSummary.locationsUsed} of {usageSummary.locationsLimit === Infinity ? '∞' : usageSummary.locationsLimit}</span>
@@ -450,7 +443,7 @@ export default function BillingPage() {
               return (
                 <PlanCard 
                   key={plan.id} 
-                  isSelected={isSelected}
+                  $isSelected={isSelected}
                   onClick={() => !isSelected && handlePlanSelect(plan.id)}
                 >
                   {isSelected && <CurrentPlanBadge>Current Plan</CurrentPlanBadge>}

@@ -910,7 +910,7 @@ export default function MobileOrderCreation({ className, userRole = 'customer' }
   return (
     <OrderContainer className={className}>
       <Header>
-        <Title>Create New Order</Title>
+        <Title>Create Order Tracker</Title>
         <Subtitle>Select items from menu & generate QR tracker</Subtitle>
       </Header>
 
@@ -1154,7 +1154,7 @@ export default function MobileOrderCreation({ className, userRole = 'customer' }
                 ) : (
                   <>
                     <CheckCircle size={20} />
-                    Create Order & Generate QR Code
+                    Create QR Code Order Tracker
                   </>
                 )}
               </CheckoutButton>

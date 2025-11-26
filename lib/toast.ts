@@ -1,0 +1,62 @@
+// Toast notification utility for consistent user feedback across the app
+import toast from 'react-hot-toast';
+
+export const showSuccess = (message: string) => {
+  toast.success(message, {
+    duration: 4000,
+    position: 'top-right',
+    style: {
+      background: '#16a34a',
+      color: '#fff',
+      fontWeight: 600,
+    },
+    iconTheme: {
+      primary: '#fff',
+      secondary: '#16a34a',
+    },
+  });
+};
+
+export const showError = (message: string) => {
+  toast.error(message, {
+    duration: 5000,
+    position: 'top-right',
+    style: {
+      background: '#dc2626',
+      color: '#fff',
+      fontWeight: 600,
+    },
+    iconTheme: {
+      primary: '#fff',
+      secondary: '#dc2626',
+    },
+  });
+};
+
+export const showInfo = (message: string) => {
+  toast(message, {
+    duration: 4000,
+    position: 'top-right',
+    icon: 'ℹ️',
+    style: {
+      background: '#3b82f6',
+      color: '#fff',
+      fontWeight: 600,
+    },
+  });
+};
+
+export const showLoading = (message: string) => {
+  return toast.loading(message, {
+    position: 'top-right',
+    style: {
+      background: '#f59e0b',
+      color: '#fff',
+      fontWeight: 600,
+    },
+  });
+};
+
+export const dismissToast = (toastId: string) => {
+  toast.dismiss(toastId);
+};

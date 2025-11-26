@@ -21,6 +21,7 @@ import {
   Building
 } from 'lucide-react';
 import { MobileDataService } from '@/mobile-android/shared/services/mobileDataService';
+import { buildTrackingUrl } from '@/lib/url';
 
 const OrderDetailsContainer = styled.div`
   padding: 1rem;
@@ -381,7 +382,7 @@ export default function MobileOrderDetails({ orderId }: MobileOrderDetailsProps)
           driverName: orderData.driverName,
           driverCompany: orderData.driverCompany,
           location: orderData.location,
-          qrCode: `${window.location.origin}/orders/${orderData.id}`
+          qrCode: buildTrackingUrl(`/orders/${orderData.id}`)
         };
         
         setOrder(transformedOrder);

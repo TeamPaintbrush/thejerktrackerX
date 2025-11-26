@@ -29,9 +29,10 @@ export interface Order {
   // Location tracking for billing accuracy
   location: {
     locationId: string;   // ID of the location where order was placed
+    locationName?: string; // Name of the location for display
     businessId: string;   // Business ID for billing
     qrCodeId?: string;    // QR code used to place the order
-    verificationStatus: 'verified' | 'pending' | 'failed';
+    verificationStatus: 'verified' | 'pending' | 'failed' | 'manual';
     coordinates?: {       // GPS coordinates when order was placed
       latitude: number;
       longitude: number;
@@ -39,6 +40,9 @@ export interface Order {
     };
     ipAddress?: string;   // IP address for additional verification
     deviceInfo?: string;  // Device fingerprint for fraud detection
+    transferredAt?: Date; // When order was transferred to another location
+    transferReason?: string; // Reason for transfer
+    previousLocationId?: string; // Previous location before transfer
   };
 }
 
@@ -150,6 +154,9 @@ export interface User {
   phone?: string;         // Contact phone number
   permissions?: string[]; // Specific permissions for the role
   businessId?: string;    // Links user to their business locations
+  // Push notification fields (mobile)
+  fcmToken?: string;      // Firebase Cloud Messaging token for push notifications
+  fcmTokenUpdatedAt?: string; // Last time FCM token was updated
   // User settings (synced across web and mobile)
   settings?: {
     profile?: Record<string, any>;
@@ -250,6 +257,34 @@ export interface FraudClaim {
   assignedTo?: string;      // Admin/manager assigned to investigate
 }
 
+const sanitizeForDynamo = (value: any): any => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map(item => sanitizeForDynamo(item))
+      .filter(item => item !== undefined);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.entries(value).reduce((acc, [key, val]) => {
+      const sanitized = sanitizeForDynamo(val);
+      if (sanitized !== undefined) {
+        acc[key] = sanitized;
+      }
+      return acc;
+    }, {} as Record<string, any>);
+  }
+
+  return value;
+};
+
 export class DynamoDBService {
   private static client: DynamoDBDocumentClient | null = null;
   private static fallbackMode = false;
@@ -263,6 +298,10 @@ export class DynamoDBService {
       enableDynamoDB: process.env.NEXT_PUBLIC_ENABLE_DYNAMODB !== 'false',
       fallbackMode: process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true'
     };
+  }
+
+  private static getUsersTableName() {
+    return process.env.NEXT_PUBLIC_DYNAMODB_USERS_TABLE || 'jerktracker-users';
   }
 
   // Initialize DynamoDB Client
@@ -294,7 +333,7 @@ export class DynamoDBService {
             })
           });
         } else {
-          console.warn('No Cognito Identity Pool configured, falling back to in-memory storage');
+          // Client-side without Cognito - fallback to server-side operations
           this.fallbackMode = true;
           return null;
         }
@@ -426,6 +465,49 @@ export class DynamoDBService {
     }
     
     return this.updateOrder(id, updates);
+  }
+
+  // Transfer order to a different location
+  static async transferOrder(orderId: string, newLocationId: string, reason?: string): Promise<Order | null> {
+    try {
+      const order = await this.getOrderById(orderId);
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      const newLocation = await this.getLocationById(newLocationId);
+      if (!newLocation) {
+        throw new Error('Target location not found');
+      }
+
+      const oldLocationId = order.location.locationId;
+
+      // Update order with new location
+      const updates: Partial<Order> = {
+        location: {
+          ...order.location,
+          locationId: newLocationId,
+          locationName: newLocation.name,
+          businessId: newLocation.businessId,
+          transferredAt: new Date(),
+          transferReason: reason || 'Location transfer',
+          previousLocationId: oldLocationId
+        }
+      };
+
+      const updatedOrder = await this.updateOrder(orderId, updates);
+
+      // Update billing counters
+      if (oldLocationId && oldLocationId !== 'default') {
+        await this.updateLocationUsage(oldLocationId, -1);
+      }
+      await this.updateLocationUsage(newLocationId, 1);
+
+      return updatedOrder;
+    } catch (error) {
+      console.error('Error transferring order:', error);
+      throw error;
+    }
   }
 
   // Check service status
@@ -793,7 +875,7 @@ export class DynamoDBService {
       }
 
       const result = await client.send(new ScanCommand({
-        TableName: process.env.NEXT_PUBLIC_DYNAMODB_USERS_TABLE || 'jerktracker-users',
+        TableName: this.getUsersTableName(),
         FilterExpression: 'email = :email',
         ExpressionAttributeValues: {
           ':email': email
@@ -835,14 +917,16 @@ export class DynamoDBService {
       }
 
       const config = this.getConfig();
+      const item = sanitizeForDynamo({
+        ...newLocation,
+        type: 'location',
+        createdAt: newLocation.createdAt.toISOString(),
+        updatedAt: newLocation.updatedAt?.toISOString()
+      });
+
       const command = new PutCommand({
         TableName: config.tableName,
-        Item: {
-          ...newLocation,
-          type: 'location',
-          createdAt: newLocation.createdAt.toISOString(),
-          updatedAt: newLocation.updatedAt?.toISOString()
-        }
+        Item: item
       });
 
       await client.send(command);
@@ -939,16 +1023,24 @@ export class DynamoDBService {
       if (!client) return false;
 
       const config = this.getConfig();
-      const updateExpression = Object.keys(updates)
-        .map(key => `#${key} = :${key}`)
+      const sanitizedUpdates = sanitizeForDynamo(updates) as Record<string, any>;
+      const updateEntries = Object.entries(sanitizedUpdates).filter(([, value]) => value !== undefined);
+
+      if (updateEntries.length === 0) {
+        console.warn('No valid location updates provided');
+        return false;
+      }
+
+      const updateExpression = updateEntries
+        .map(([key]) => `#${key} = :${key}`)
         .join(', ');
 
-      const expressionAttributeNames = Object.keys(updates).reduce((acc, key) => {
+      const expressionAttributeNames = updateEntries.reduce((acc, [key]) => {
         acc[`#${key}`] = key;
         return acc;
       }, {} as Record<string, string>);
 
-      const expressionAttributeValues = Object.entries(updates).reduce((acc, [key, value]) => {
+      const expressionAttributeValues = updateEntries.reduce((acc, [key, value]) => {
         acc[`:${key}`] = value;
         return acc;
       }, {} as Record<string, any>);
@@ -1018,7 +1110,6 @@ export class DynamoDBService {
 
   static async verifyLocationAddress(address: Location['address']): Promise<{ isValid: boolean; coordinates?: { latitude: number; longitude: number }; error?: string }> {
     try {
-      // Simple address validation - in production, you'd use Google Maps API or similar
       const addressString = `${address.street}, ${address.city}, ${address.state} ${address.zipCode}, ${address.country}`;
       
       // Basic validation checks
@@ -1026,10 +1117,42 @@ export class DynamoDBService {
         return { isValid: false, error: 'Incomplete address information' };
       }
 
-      // TODO: Integrate with Google Maps Geocoding API or similar service
-      // For now, return mock coordinates based on address
+      // Google Maps Geocoding API integration
+      const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      
+      if (GOOGLE_MAPS_API_KEY) {
+        try {
+          const encodedAddress = encodeURIComponent(addressString);
+          const response = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${GOOGLE_MAPS_API_KEY}`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.status === 'OK' && data.results && data.results.length > 0) {
+              const location = data.results[0].geometry.location;
+              return {
+                isValid: true,
+                coordinates: {
+                  latitude: location.lat,
+                  longitude: location.lng
+                }
+              };
+            } else {
+              console.warn('Google Maps Geocoding failed:', data.status);
+            }
+          }
+        } catch (apiError) {
+          console.error('Google Maps API error:', apiError);
+        }
+      }
+
+      // Fallback: Basic coordinate estimation for testing
+      // In production with API key, this won't be reached
+      console.warn('Using fallback geocoding - add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY for production');
       const mockCoordinates = {
-        latitude: 40.7128 + (Math.random() - 0.5) * 0.1, // Mock NYC area
+        latitude: 40.7128 + (Math.random() - 0.5) * 0.1,
         longitude: -74.0060 + (Math.random() - 0.5) * 0.1
       };
 
@@ -1579,7 +1702,7 @@ export class DynamoDBService {
       }
 
       const result = await client.send(new ScanCommand({
-        TableName: 'jerktracker-users'
+        TableName: this.getUsersTableName()
       }));
 
       let users = (result.Items as User[]) || [];
@@ -1609,7 +1732,7 @@ export class DynamoDBService {
       }
 
       const result = await client.send(new GetCommand({
-        TableName: 'jerktracker-users',
+        TableName: this.getUsersTableName(),
         Key: { id }
       }));
 
@@ -1643,7 +1766,7 @@ export class DynamoDBService {
       }
 
       await client.send(new PutCommand({
-        TableName: 'jerktracker-users',
+        TableName: this.getUsersTableName(),
         Item: newUser
       }));
 
@@ -1695,7 +1818,7 @@ export class DynamoDBService {
       expressionAttributeValues[':updatedAt'] = new Date();
 
       await client.send(new UpdateCommand({
-        TableName: 'jerktracker-users',
+        TableName: this.getUsersTableName(),
         Key: { id },
         UpdateExpression: `SET ${updateExpressions.join(', ')}`,
         ExpressionAttributeNames: expressionAttributeNames,
@@ -1725,7 +1848,7 @@ export class DynamoDBService {
       }
 
       await client.send(new UpdateCommand({
-        TableName: 'jerktracker-users',
+        TableName: this.getUsersTableName(),
         Key: { id },
         UpdateExpression: 'REMOVE #user',
         ExpressionAttributeNames: { '#user': 'id' }
@@ -1795,7 +1918,7 @@ export class DynamoDBService {
       }
 
       await client.send(new UpdateCommand({
-        TableName: process.env.NEXT_PUBLIC_DYNAMODB_USERS_TABLE || 'jerktracker-users',
+        TableName: this.getUsersTableName(),
         Key: { id: driverId },
         UpdateExpression: 'SET driverInfo.availability = :status, updatedAt = :updatedAt',
         ExpressionAttributeValues: {

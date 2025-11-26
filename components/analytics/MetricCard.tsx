@@ -12,7 +12,7 @@ interface MetricCardProps {
     period: string
   }
   description?: string
-  color?: 'blue' | 'green' | 'purple' | 'orange' | 'red'
+  color?: 'blue' | 'green' | 'orange' | 'red'
 }
 
 const MetricContainer = styled(Card)`
@@ -33,8 +33,6 @@ const IconContainer = styled.div<{ color?: MetricCardProps['color'] }>`
     switch (color) {
       case 'green':
         return 'filter: hue-rotate(120deg);'
-      case 'purple':
-        return 'filter: hue-rotate(270deg);'
       case 'orange':
         return 'filter: hue-rotate(30deg);'
       case 'red':
@@ -54,8 +52,6 @@ const MetricValue = styled.div<{ color?: MetricCardProps['color'] }>`
     switch (color) {
       case 'green':
         return 'color: #10b981;'
-      case 'purple':
-        return 'color: #8b5cf6;'
       case 'orange':
         return 'color: #f59e0b;'
       case 'red':

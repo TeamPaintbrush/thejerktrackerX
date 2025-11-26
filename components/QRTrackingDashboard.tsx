@@ -23,6 +23,7 @@ import {
   Menu,
   AlertTriangle
 } from 'lucide-react';
+import { buildTrackingUrl } from '@/lib/url';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -503,14 +504,10 @@ export default function QRTrackingDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Orders');
   const [sortBy, setSortBy] = useState('Newest First');
-  const [currentUrl, setCurrentUrl] = useState('');
   const [selectedOrderForClaim, setSelectedOrderForClaim] = useState<Order | null>(null);
 
   useEffect(() => {
     setIsClient(true);
-    if (typeof window !== 'undefined') {
-      setCurrentUrl(window.location.origin);
-    }
   }, []);
 
   const loadOrders = useCallback(async () => {
@@ -602,11 +599,7 @@ export default function QRTrackingDashboard() {
     { id: 'settings', label: 'Settings', icon: <SettingsIcon size={20} />, href: '/admin' },
   ];
 
-  const generateQRUrl = (orderId: string) => {
-    const isProduction = currentUrl.includes('github.io');
-    const basePath = isProduction ? '/thejerktrackerX' : '';
-    return `${currentUrl}${basePath}/orders/${orderId}`;
-  };
+  const generateQRUrl = (orderId: string) => buildTrackingUrl(`/orders/${orderId}`);
 
   const copyOrderLink = (orderId: string) => {
     const url = generateQRUrl(orderId);
@@ -881,6 +874,20 @@ export default function QRTrackingDashboard() {
                       <InfoLabel>Email:</InfoLabel>
                       <InfoValue>{order.customerEmail}</InfoValue>
                     </InfoRow>
+                  </CustomerInfo>
+
+                  <CustomerInfo>
+                    <InfoTitle>Location</InfoTitle>
+                    <InfoRow>
+                      <InfoLabel>Location:</InfoLabel>
+                      <InfoValue>{order.location?.locationName || order.location?.locationId || 'Not specified'}</InfoValue>
+                    </InfoRow>
+                    {order.location?.businessId && (
+                      <InfoRow>
+                        <InfoLabel>Business ID:</InfoLabel>
+                        <InfoValue>{order.location.businessId}</InfoValue>
+                      </InfoRow>
+                    )}
                   </CustomerInfo>
 
                   <OrderDetails>

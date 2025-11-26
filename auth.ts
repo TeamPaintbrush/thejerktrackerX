@@ -150,6 +150,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return session
     },
+    async redirect({ url, baseUrl }) {
+      // If redirecting after sign-in, use role-based routing
+      // This is called by NextAuth after successful authentication
+      
+      // If there's a callback URL specified, use it
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // If the URL is already absolute and points to our site
+      else if (new URL(url).origin === baseUrl) return url
+      // Default to base URL (home page)
+      return baseUrl
+    },
   },
   pages: {
     signIn: "/auth/signin",

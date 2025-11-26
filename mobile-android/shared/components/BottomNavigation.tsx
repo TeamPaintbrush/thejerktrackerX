@@ -206,6 +206,11 @@ const navigationItems = [
     icon: <ClipboardList />
   },
   {
+    path: '/mobile/scan',
+    label: 'Scan QR',
+    icon: <ScanLine />
+  },
+  {
     path: '/mobile/qr',
     label: 'QR Code',
     icon: <ScanBarcode />

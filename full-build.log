@@ -1,0 +1,14 @@
+   Γû▓ Next.js 15.5.4
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 4.0s
+   Linting and checking validity of types ...
+
+./app/driver-pickup/page.tsx
+205:6  Warning: React Hook useEffect has a missing dependency: 'loadOrder'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/ui/PullToRefresh.tsx
+124:6  Warning: React Hook useEffect has missing dependencies: 'handleTouchEnd' and 'handleTouchMove'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules

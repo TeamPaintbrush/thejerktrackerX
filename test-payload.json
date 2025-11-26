@@ -1,0 +1,1 @@
+{"httpMethod":"POST","body":"{\"email\":\"testuser@example.com\",\"password\":\"test123456\",\"name\":\"Test User\"}","headers":{"Content-Type":"application/json"}}

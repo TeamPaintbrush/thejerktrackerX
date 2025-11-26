@@ -1,0 +1,162 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: The JERK Tracker Mobile API - Serverless Backend
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 256
+    Runtime: nodejs20.x
+    Environment:
+      Variables:
+        DYNAMODB_TABLE_ORDERS: jerktracker-orders
+        DYNAMODB_TABLE_USERS: jerktracker-users
+        DYNAMODB_TABLE_LOCATIONS: Locations
+
+Resources:
+  # Lambda Execution Role
+  JerkTrackerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: JerkTrackerLambdaRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+
+  # API Gateway
+  JerkTrackerApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,x-mobile-api-key'"
+        AllowOrigin: "'*'"
+
+  # User Signup Function
+  UserSignupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: jerktracker-userSignup
+      CodeUri: ./
+      Handler: userSignup.handler
+      Role: !GetAtt JerkTrackerLambdaRole.Arn
+      Events:
+        SignupApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /auth/signup
+            Method: POST
+
+  # User Login Function
+  UserLoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: jerktracker-userLogin
+      CodeUri: ./
+      Handler: userLogin.handler
+      Role: !GetAtt JerkTrackerLambdaRole.Arn
+      Events:
+        LoginApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /auth/login
+            Method: POST
+
+  # Orders Handler Function
+  OrdersHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: jerktracker-ordersHandler
+      CodeUri: ./
+      Handler: ordersHandler.handler
+      Role: !GetAtt JerkTrackerLambdaRole.Arn
+      Events:
+        ListOrders:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /orders
+            Method: GET
+        CreateOrder:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /orders
+            Method: POST
+        GetOrder:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /orders/{id}
+            Method: GET
+        UpdateOrder:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /orders/{id}
+            Method: PUT
+        DeleteOrder:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /orders/{id}
+            Method: DELETE
+
+  # Locations Handler Function
+  LocationsHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: jerktracker-locationsHandler
+      CodeUri: ./
+      Handler: locationsHandler.handler
+      Role: !GetAtt JerkTrackerLambdaRole.Arn
+      Events:
+        ListLocations:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /locations
+            Method: GET
+        CreateLocation:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /locations
+            Method: POST
+        GetLocation:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /locations/{id}
+            Method: GET
+        UpdateLocation:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /locations/{id}
+            Method: PUT
+        DeleteLocation:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JerkTrackerApi
+            Path: /locations/{id}
+            Method: DELETE
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${JerkTrackerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+  
+  ApiId:
+    Description: "API Gateway ID"
+    Value: !Ref JerkTrackerApi

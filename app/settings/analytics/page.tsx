@@ -6,14 +6,13 @@ import { useRouter } from 'next/navigation'
 import styled from 'styled-components'
 import { DynamoDBService, Location } from '@/lib/dynamodb'
 import { BillingService } from '@/lib/billingService'
-import { hasPermission } from '@/lib/roles'
 import { User } from '@/lib/dynamodb'
-import Header from '@/components/Header'
 import { LoadingSpinner } from '@/components/Loading'
+import BackButton from '@/components/settings/BackButton'
 
 const Container = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ed7734 0%, #de5d20 100%);
   padding: 20px;
   
   @media (max-width: 768px) {
@@ -92,7 +91,7 @@ const MetricCard = styled.div`
   .value {
     font-size: 32px;
     font-weight: 700;
-    color: #667eea;
+    color: #ed7734;
     margin-bottom: 5px;
   }
   
@@ -268,8 +267,8 @@ const SimpleChart = styled.div`
 
 const ExportButton = styled.button`
   background: transparent;
-  color: #667eea;
-  border: 2px solid #667eea;
+  color: #ed7734;
+  border: 2px solid #ed7734;
   border-radius: 8px;
   padding: 8px 16px;
   font-size: 14px;
@@ -278,7 +277,7 @@ const ExportButton = styled.button`
   transition: all 0.3s ease;
   
   &:hover {
-    background: #667eea;
+    background: #ed7734;
     color: white;
   }
 `
@@ -355,12 +354,6 @@ export default function LocationAnalyticsPage() {
       return
     }
 
-    const user = session.user as User
-    if (!hasPermission(user.role, 'locations:analytics')) {
-      router.push('/')
-      return
-    }
-
     loadAnalytics()
   }, [session, status, router, loadAnalytics])
 
@@ -423,8 +416,8 @@ export default function LocationAnalyticsPage() {
 
   return (
     <Container>
-      <Header />
       <ContentWrapper>
+        <BackButton />
         <PageHeader>
           <h1>Location Analytics</h1>
           <FilterSection>

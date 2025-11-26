@@ -7,6 +7,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { DynamoDBService, Order as DBOrder, Location } from '@/lib/dynamodb';
+import TransferOrderModal from '@/components/TransferOrderModal';
 import { 
   ShoppingBag, 
   Clock, 
@@ -16,7 +18,8 @@ import {
   History,
   Plus,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  ArrowRightLeft
 } from 'lucide-react';
 
 // Mobile auth hook
@@ -40,17 +43,6 @@ function useMobileAuth() {
 }
 
 // Interfaces
-interface Order {
-  id: string;
-  orderNumber: string;
-  status: 'pending' | 'picked_up' | 'delivered';
-  orderDetails: string;
-  createdAt: string;
-  driverName?: string;
-  driverCompany?: string;
-  customerEmail?: string;
-}
-
 interface MobileCustomerDashboardProps {}
 
 // Styled Components (matching mobile UI pattern)
@@ -331,55 +323,90 @@ const LoadingContainer = styled.div`
   color: #6b7280;
 `;
 
+const OrderActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+`;
+
+const TransferButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, #ed7734 0%, #de5d20 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 1;
+  transition: all 0.2s ease;
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
 const MobileCustomerDashboard: React.FC<MobileCustomerDashboardProps> = () => {
   const router = useRouter();
   const { user } = useMobileAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<DBOrder[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [selectedOrderForTransfer, setSelectedOrderForTransfer] = useState<DBOrder | null>(null);
 
   useEffect(() => {
     loadCustomerOrders();
   }, [user]);
 
   const loadCustomerOrders = async () => {
-    setIsLoading(true);
+    if (!user?.email) return;
     
-    // Simulate loading with mock data
-    setTimeout(() => {
-      const mockOrders: Order[] = [
-        {
-          id: '1',
-          orderNumber: 'ORD-2025-001',
-          status: 'picked_up',
-          orderDetails: 'Jerk Chicken Platter, Rice & Peas',
-          createdAt: new Date().toISOString(),
-          driverName: 'Marcus Johnson',
-          driverCompany: 'Quick Deliver',
-          customerEmail: user?.email
-        },
-        {
-          id: '2',
-          orderNumber: 'ORD-2025-002',
-          status: 'pending',
-          orderDetails: 'Curry Goat, Festival, Escovitch Fish',
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          customerEmail: user?.email
-        },
-        {
-          id: '3',
-          orderNumber: 'ORD-2024-095',
-          status: 'delivered',
-          orderDetails: 'Ackee & Saltfish, Fried Dumpling',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          driverName: 'Sarah Williams',
-          driverCompany: 'Fast Track',
-          customerEmail: user?.email
-        }
-      ];
+    setIsLoading(true);
+    try {
+      const fetchedOrders = await DynamoDBService.getAllOrders();
       
-      setOrders(mockOrders);
+      // Get customer's business ID
+      const customerBusinessId = user.id || 'BUS-001';
+      
+      // Filter orders for this customer's business
+      const customerOrders = fetchedOrders.filter(order => 
+        order.location?.businessId === customerBusinessId || 
+        order.customerEmail === user.email
+      );
+      
+      setOrders(customerOrders);
+      
+      // Load locations for transfer functionality
+      const businessLocations = await DynamoDBService.getLocationsByBusinessId(customerBusinessId);
+      setLocations(businessLocations);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      setOrders([]);
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
+  };
+
+  const handleTransferClick = (e: React.MouseEvent, order: DBOrder) => {
+    e.stopPropagation();
+    setSelectedOrderForTransfer(order);
+    setShowTransferModal(true);
+  };
+
+  const handleTransferSuccess = () => {
+    loadCustomerOrders();
   };
 
   const handleNewOrder = () => {
@@ -504,25 +531,36 @@ const MobileCustomerDashboard: React.FC<MobileCustomerDashboardProps> = () => {
           {activeOrders.map((order, index) => (
             <OrderCard
               key={order.id}
-              onClick={() => handleTrackOrder(order.id)}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              whileTap={{ scale: 0.98 }}
             >
-              <OrderHeader>
-                <OrderNumber>#{order.orderNumber}</OrderNumber>
-                <OrderStatus $status={order.status}>
-                  {order.status.replace('_', ' ')}
-                </OrderStatus>
-              </OrderHeader>
-              <OrderDetails>
-                <div><strong>Items:</strong> {order.orderDetails}</div>
-                <div><strong>Ordered:</strong> {new Date(order.createdAt).toLocaleString()}</div>
-                {order.driverName && (
-                  <div><strong>Driver:</strong> {order.driverName}</div>
-                )}
-              </OrderDetails>
+              <div onClick={() => handleTrackOrder(order.id)}>
+                <OrderHeader>
+                  <OrderNumber>#{order.orderNumber}</OrderNumber>
+                  <OrderStatus $status={order.status}>
+                    {order.status.replace('_', ' ')}
+                  </OrderStatus>
+                </OrderHeader>
+                <OrderDetails>
+                  <div><strong>Items:</strong> {order.orderDetails}</div>
+                  <div><strong>Ordered:</strong> {new Date(order.createdAt).toLocaleString()}</div>
+                  {order.driverName && (
+                    <div><strong>Driver:</strong> {order.driverName}</div>
+                  )}
+                  {order.location?.locationName && (
+                    <div><strong>Location:</strong> {order.location.locationName}</div>
+                  )}
+                </OrderDetails>
+              </div>
+              {locations.length > 1 && (
+                <OrderActions>
+                  <TransferButton onClick={(e) => handleTransferClick(e, order)}>
+                    <ArrowRightLeft />
+                    Transfer
+                  </TransferButton>
+                </OrderActions>
+              )}
             </OrderCard>
           ))}
         </Section>
@@ -555,26 +593,50 @@ const MobileCustomerDashboard: React.FC<MobileCustomerDashboardProps> = () => {
           orders.slice(0, 3).map((order, index) => (
             <OrderCard
               key={order.id}
-              onClick={() => handleTrackOrder(order.id)}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              whileTap={{ scale: 0.98 }}
             >
-              <OrderHeader>
-                <OrderNumber>#{order.orderNumber}</OrderNumber>
-                <OrderStatus $status={order.status}>
-                  {order.status.replace('_', ' ')}
-                </OrderStatus>
-              </OrderHeader>
-              <OrderDetails>
-                <div><strong>Items:</strong> {order.orderDetails}</div>
-                <div><strong>Date:</strong> {new Date(order.createdAt).toLocaleDateString()}</div>
-              </OrderDetails>
+              <div onClick={() => handleTrackOrder(order.id)}>
+                <OrderHeader>
+                  <OrderNumber>#{order.orderNumber}</OrderNumber>
+                  <OrderStatus $status={order.status}>
+                    {order.status.replace('_', ' ')}
+                  </OrderStatus>
+                </OrderHeader>
+                <OrderDetails>
+                  <div><strong>Items:</strong> {order.orderDetails}</div>
+                  <div><strong>Date:</strong> {new Date(order.createdAt).toLocaleDateString()}</div>
+                  {order.location?.locationName && (
+                    <div><strong>Location:</strong> {order.location.locationName}</div>
+                  )}
+                </OrderDetails>
+              </div>
+              {locations.length > 1 && (
+                <OrderActions>
+                  <TransferButton onClick={(e) => handleTransferClick(e, order)}>
+                    <ArrowRightLeft />
+                    Transfer
+                  </TransferButton>
+                </OrderActions>
+              )}
             </OrderCard>
           ))
         )}
       </Section>
+
+      {/* Transfer Order Modal */}
+      {showTransferModal && selectedOrderForTransfer && (
+        <TransferOrderModal
+          order={selectedOrderForTransfer}
+          locations={locations}
+          onClose={() => {
+            setShowTransferModal(false);
+            setSelectedOrderForTransfer(null);
+          }}
+          onSuccess={handleTransferSuccess}
+        />
+      )}
     </DashboardContainer>
   );
 };

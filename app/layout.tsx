@@ -8,6 +8,7 @@ import { ToastProvider } from '../components/Toast';
 import { AnimatePresence } from 'framer-motion';
 import StyledComponentsRegistry from '../lib/registry';
 import { SessionProvider } from '../components/SessionProvider';
+import ErrorBoundary from '../components/ErrorBoundary';
 import dynamic from 'next/dynamic';
 import '../styles/responsive-fixes.css';
 import { initMobileEnhancements } from '../lib/mobile-enhancements';
@@ -114,18 +115,20 @@ export default function RootLayout({
         <meta name="twitter:image" content="/icons/icon-512x512.svg" />
       </head>
       <body>
-        <StyledComponentsRegistry>
-          <ThemeProvider theme={theme}>
-            <GlobalStyles />
-            <ToastProvider>
-              <SessionProvider>
-                <ConditionalLayout>
-                  {children}
-                </ConditionalLayout>
-              </SessionProvider>
-            </ToastProvider>
-          </ThemeProvider>
-        </StyledComponentsRegistry>
+        <ErrorBoundary>
+          <StyledComponentsRegistry>
+            <ThemeProvider theme={theme}>
+              <GlobalStyles />
+              <ToastProvider>
+                <SessionProvider>
+                  <ConditionalLayout>
+                    {children}
+                  </ConditionalLayout>
+                </SessionProvider>
+              </ToastProvider>
+            </ThemeProvider>
+          </StyledComponentsRegistry>
+        </ErrorBoundary>
         
         {/* Service Worker Registration - TEMPORARILY DISABLED TO FIX DASHBOARD OVERLAY */}
         <script dangerouslySetInnerHTML={{

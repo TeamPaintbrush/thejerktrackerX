@@ -3,6 +3,7 @@
 import React from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import styled from 'styled-components';
+import { buildTrackingUrl } from '@/lib/url';
 
 const QRContainer = styled.div`
   background: white;
@@ -94,8 +95,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   showUrl = true,
   showPrintButton = true
 }) => {
-  const basePath = process.env.NODE_ENV === 'production' ? '/thejerktrackerX' : '';
-  const orderUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}${basePath}/order?id=${orderId}`;
+  const orderUrl = buildTrackingUrl(`/order?id=${orderId}`);
 
   if (compact) {
     return (

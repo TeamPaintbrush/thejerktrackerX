@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import styled from 'styled-components'
 import { 
   Lock,
   Shield,
@@ -14,8 +14,354 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import SettingsService, { type UserSettings } from '../../lib/settings'
+import { DynamoDBService } from '@/lib/dynamodb'
+import { useSession } from 'next-auth/react'
+import { showSuccess, showError, showLoading, dismissToast, showInfo } from '@/lib/toast'
+import { Toaster } from 'react-hot-toast'
+import BackButton from './BackButton'
+
+const Container = styled.div`
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+`
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f5f5f4;
+`
+
+const Title = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1c1917;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+`
+
+const IconWrapper = styled.div`
+  width: 3rem;
+  height: 3rem;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+`
+
+const Description = styled.p`
+  color: #78716c;
+  font-size: 0.875rem;
+  margin: 0;
+`
+
+const Section = styled.div`
+  margin-bottom: 2rem;
+`
+
+const SectionTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #44403c;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`
+
+const SectionHint = styled.p`
+  font-size: 0.875rem;
+  color: #a8a29e;
+  margin-bottom: 1.5rem;
+`
+
+const SettingRow = styled.div`
+  background: #fafaf9;
+  border: 1px solid #e7e5e4;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #d6d3d1;
+    background: #f5f5f4;
+  }
+`
+
+const SettingInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+`
+
+const SettingIcon = styled.div<{ color: string }>`
+  width: 2.5rem;
+  height: 2.5rem;
+  background: ${props => props.color}15;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${props => props.color};
+`
+
+const SettingText = styled.div`
+  flex: 1;
+`
+
+const SettingTitle = styled.div`
+  font-weight: 600;
+  color: #1c1917;
+  margin-bottom: 0.25rem;
+`
+
+const SettingDescription = styled.div`
+  font-size: 0.875rem;
+  color: #78716c;
+`
+
+const Toggle = styled.button<{ $enabled: boolean }>`
+  position: relative;
+  width: 2.75rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  background-color: ${props => props.$enabled ? '#ed7734' : '#d6d3d1'};
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0.125rem;
+    left: ${props => props.$enabled ? 'calc(100% - 1.375rem)' : '0.125rem'};
+    width: 1.25rem;
+    height: 1.25rem;
+    background: white;
+    border-radius: 9999px;
+    transition: left 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+`
+
+const FormField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+`
+
+const Label = styled.label`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #57534e;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`
+
+const PasswordInputWrapper = styled.div`
+  position: relative;
+`
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  padding-right: 2.5rem;
+  border: 1px solid #d6d3d1;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #ed7734;
+    box-shadow: 0 0 0 3px rgba(237, 119, 52, 0.1);
+  }
+`
+
+const PasswordToggleButton = styled.button`
+  position: absolute;
+  right: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #a8a29e;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #57534e;
+  }
+`
+
+const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+
+  ${props => props.variant === 'primary' && `
+    background: linear-gradient(135deg, #ed7734 0%, #de5d20 100%);
+    color: white;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(237, 119, 52, 0.3);
+    }
+  `}
+
+  ${props => props.variant === 'secondary' && `
+    background: #f5f5f4;
+    color: #57534e;
+
+    &:hover {
+      background: #e7e5e4;
+    }
+  `}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+`
+
+const TimeoutOptions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+`
+
+const TimeoutButton = styled.button<{ selected: boolean }>`
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid ${props => props.selected ? '#ed7734' : '#d6d3d1'};
+  background: ${props => props.selected ? '#ed773410' : 'white'};
+  color: ${props => props.selected ? '#ed7734' : '#57534e'};
+
+  &:hover {
+    border-color: #ed7734;
+    background: #ed773410;
+  }
+`
+
+const Hint = styled.p`
+  font-size: 0.75rem;
+  color: #a8a29e;
+  margin: 0.5rem 0 0 0;
+`
+
+const WarningBox = styled.div`
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fbbf24;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: start;
+  gap: 0.75rem;
+  margin-top: 1rem;
+`
+
+const WarningContent = styled.div`
+  flex: 1;
+`
+
+const WarningTitle = styled.div`
+  font-weight: 600;
+  color: #78350f;
+  margin-bottom: 0.25rem;
+`
+
+const WarningText = styled.div`
+  font-size: 0.875rem;
+  color: #92400e;
+`
+
+const LoadingOverlay = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+`
+
+const Spinner = styled.div`
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid #f5f5f4;
+  border-top-color: #ed7734;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`
+
+const SaveIndicator = styled.div`
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: white;
+  border: 1px solid #e7e5e4;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 50;
+`
+
+const SaveSpinner = styled.div`
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #f5f5f4;
+  border-top-color: #ed7734;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`
+
+const SaveText = styled.span`
+  font-size: 0.875rem;
+  color: #57534e;
+  font-weight: 500;
+`
 
 export default function SecuritySettings() {
+  const { data: session } = useSession()
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -38,10 +384,26 @@ export default function SecuritySettings() {
 
   const loadSecurity = async () => {
     try {
-      const mockSettings = SettingsService.createDefaultSettings('user@example.com', 'user@example.com')
-      setSettings(mockSettings)
-      setSecurity(mockSettings.security)
+      if (!session?.user?.id) {
+        setLoading(false)
+        return
+      }
+
+      const user = await DynamoDBService.getUserById(session.user.id)
+      if (user && user.settings) {
+        setSettings(user.settings)
+        setSecurity(user.settings.security)
+      } else {
+        const defaultSettings = SettingsService.createDefaultSettings(
+          session.user.id,
+          session.user.email || '',
+          session.user.name || ''
+        )
+        setSettings(defaultSettings)
+        setSecurity(defaultSettings.security)
+      }
     } catch (error) {
+      showError('Failed to load security settings')
       console.error('Failed to load security:', error)
     } finally {
       setLoading(false)
@@ -49,34 +411,47 @@ export default function SecuritySettings() {
   }
 
   const handleToggle2FA = async () => {
+    if (!session?.user?.id) return
+
     const updated = { ...security, twoFactorEnabled: !security.twoFactorEnabled }
     setSecurity(updated)
     
     setSaving(true)
     try {
-      await SettingsService.updateUserSettings('user@example.com', {
+      await DynamoDBService.updateUserSettings(session.user.id, {
+        ...settings,
         security: updated,
         updatedAt: new Date()
       })
+      showInfo(updated.twoFactorEnabled ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled')
     } catch (error) {
+      showError('Failed to update security settings')
       console.error('Failed to save:', error)
+      // Revert on error
+      setSecurity(security)
     } finally {
       setSaving(false)
     }
   }
 
   const handleSessionTimeoutChange = async (timeout: number) => {
+    if (!session?.user?.id) return
+
     const updated = { ...security, sessionTimeout: timeout }
     setSecurity(updated)
     
     setSaving(true)
     try {
-      await SettingsService.updateUserSettings('user@example.com', {
+      await DynamoDBService.updateUserSettings(session.user.id, {
+        ...settings,
         security: updated,
         updatedAt: new Date()
       })
+      showInfo(`Session timeout updated to ${timeout} minutes`)
     } catch (error) {
+      showError('Failed to update session timeout')
       console.error('Failed to save:', error)
+      setSecurity(security)
     } finally {
       setSaving(false)
     }
@@ -84,17 +459,34 @@ export default function SecuritySettings() {
 
   const handlePasswordChange = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert('Passwords do not match')
+      showError('New passwords do not match')
       return
     }
     
+    if (passwordForm.newPassword.length < 8) {
+      showError('Password must be at least 8 characters long')
+      return
+    }
+
+    if (!passwordForm.currentPassword) {
+      showError('Please enter your current password')
+      return
+    }
+    
+    const toastId = showLoading('Updating password...')
     setSaving(true)
+    
     try {
       // In production, this would call the password change API
-      console.log('Password change requested')
+      // For now, we'll simulate success
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      dismissToast(toastId)
+      showSuccess('Password changed successfully!')
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
-      alert('Password changed successfully')
     } catch (error) {
+      dismissToast(toastId)
+      showError('Failed to change password')
       console.error('Failed to change password:', error)
     } finally {
       setSaving(false)
@@ -103,207 +495,168 @@ export default function SecuritySettings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ed7734]"></div>
-      </div>
+      <Container>
+        <BackButton />
+        <LoadingOverlay>
+          <Spinner />
+        </LoadingOverlay>
+      </Container>
     )
   }
 
-  const Toggle = ({ enabled, onChange }: { enabled: boolean, onChange: () => void }) => (
-    <button
-      onClick={onChange}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        enabled ? 'bg-[#ed7734]' : 'bg-gray-300'
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          enabled ? 'translate-x-6' : 'translate-x-1'
-        }`}
-      />
-    </button>
-  )
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <Lock className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Security & Privacy</h1>
-              <p className="text-gray-600 mt-1">Manage your account security settings</p>
-            </div>
+    <Container>
+      <Toaster />
+      <BackButton />
+      
+      <Header>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <IconWrapper>
+            <Lock size={24} />
+          </IconWrapper>
+          <div>
+            <Title>Security & Privacy</Title>
+            <Description>Manage your account security settings</Description>
           </div>
         </div>
-      </div>
+      </Header>
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Password Change */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl p-8 shadow-md border border-gray-200 mb-6"
-        >
-          <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <Key className="w-5 h-5 text-[#ed7734]" />
-            Change Password
-          </h2>
-          <p className="text-sm text-gray-600 mb-6">Update your password to keep your account secure</p>
+      {/* Password Change */}
+      <Section>
+        <SectionTitle>
+          <Key size={20} />
+          Change Password
+        </SectionTitle>
+        <SectionHint>Update your password to keep your account secure</SectionHint>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Current Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={passwordForm.currentPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ed7734] focus:border-transparent"
-                  placeholder="Enter current password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                New Password
-              </label>
-              <input
-                type="password"
-                value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ed7734] focus:border-transparent"
-                placeholder="Enter new password"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm New Password
-              </label>
-              <input
-                type="password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ed7734] focus:border-transparent"
-                placeholder="Confirm new password"
-              />
-            </div>
-
-            <button
-              onClick={handlePasswordChange}
-              disabled={saving || !passwordForm.currentPassword || !passwordForm.newPassword}
-              className="w-full px-4 py-3 bg-gradient-to-r from-[#ed7734] to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50"
+        <FormField>
+          <Label>
+            <Lock size={14} />
+            Current Password
+          </Label>
+          <PasswordInputWrapper>
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              value={passwordForm.currentPassword}
+              onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+              placeholder="Enter current password"
+            />
+            <PasswordToggleButton
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
             >
-              Update Password
-            </button>
-          </div>
-        </motion.div>
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </PasswordToggleButton>
+          </PasswordInputWrapper>
+        </FormField>
 
-        {/* Two-Factor Authentication */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl p-8 shadow-md border border-gray-200 mb-6"
+        <FormField>
+          <Label>
+            <Key size={14} />
+            New Password
+          </Label>
+          <Input
+            type="password"
+            value={passwordForm.newPassword}
+            onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+            placeholder="Enter new password"
+          />
+          <Hint>Must be at least 8 characters long</Hint>
+        </FormField>
+
+        <FormField>
+          <Label>
+            <Check size={14} />
+            Confirm New Password
+          </Label>
+          <Input
+            type="password"
+            value={passwordForm.confirmPassword}
+            onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+            placeholder="Confirm new password"
+          />
+        </FormField>
+
+        <Button
+          variant="primary"
+          onClick={handlePasswordChange}
+          disabled={saving || !passwordForm.currentPassword || !passwordForm.newPassword}
         >
-          <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <Shield className="w-5 h-5 text-[#ed7734]" />
-            Two-Factor Authentication
-          </h2>
-          <p className="text-sm text-gray-600 mb-6">Add an extra layer of security to your account</p>
+          <Key size={16} />
+          Update Password
+        </Button>
+      </Section>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-3">
-              <Smartphone className="w-5 h-5 text-blue-600" />
-              <div>
-                <h3 className="font-medium text-gray-900">Enable 2FA</h3>
-                <p className="text-sm text-gray-600">
-                  {security.twoFactorEnabled 
-                    ? 'Your account is protected with 2FA' 
-                    : 'Protect your account with two-factor authentication'
-                  }
-                </p>
-              </div>
-            </div>
-            <Toggle enabled={security.twoFactorEnabled} onChange={handleToggle2FA} />
-          </div>
+      {/* Two-Factor Authentication */}
+      <Section>
+        <SectionTitle>
+          <Shield size={20} />
+          Two-Factor Authentication
+        </SectionTitle>
+        <SectionHint>Add an extra layer of security to your account</SectionHint>
 
-          {security.twoFactorEnabled && (
-            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
-              <Check className="w-5 h-5 text-green-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-green-900">2FA is enabled</p>
-                <p className="text-sm text-green-700 mt-1">
-                  You&apos;ll need to verify your identity with a code from your authenticator app when signing in.
-                </p>
-              </div>
-            </div>
-          )}
-        </motion.div>
+        <SettingRow>
+          <SettingInfo>
+            <SettingIcon color="#3b82f6">
+              <Smartphone size={20} />
+            </SettingIcon>
+            <SettingText>
+              <SettingTitle>Enable 2FA</SettingTitle>
+              <SettingDescription>
+                {security.twoFactorEnabled 
+                  ? 'Your account is protected with 2FA' 
+                  : 'Protect your account with two-factor authentication'
+                }
+              </SettingDescription>
+            </SettingText>
+          </SettingInfo>
+          <Toggle $enabled={security.twoFactorEnabled} onClick={handleToggle2FA} />
+        </SettingRow>
 
-        {/* Session Management */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl p-8 shadow-md border border-gray-200"
-        >
-          <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <History className="w-5 h-5 text-[#ed7734]" />
-            Session Management
-          </h2>
-          <p className="text-sm text-gray-600 mb-6">Control how long you stay logged in</p>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Session Timeout
-            </label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[15, 30, 60, 120].map((minutes) => (
-                <button
-                  key={minutes}
-                  onClick={() => handleSessionTimeoutChange(minutes)}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    security.sessionTimeout === minutes
-                      ? 'border-[#ed7734] bg-orange-50 text-[#ed7734] font-medium'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  {minutes} min
-                </button>
-              ))}
-            </div>
-            <p className="text-sm text-gray-500 mt-3">
-              You&apos;ll be automatically logged out after {security.sessionTimeout} minutes of inactivity.
-            </p>
-          </div>
-        </motion.div>
-
-        {saving && (
-          <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 border border-gray-200">
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#ed7734]"></div>
-              Saving...
-            </div>
-          </div>
+        {security.twoFactorEnabled && (
+          <WarningBox style={{ background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)', border: '1px solid #10b981' }}>
+            <Check size={20} style={{ color: '#065f46', flexShrink: 0 }} />
+            <WarningContent>
+              <WarningTitle style={{ color: '#065f46' }}>2FA is enabled</WarningTitle>
+              <WarningText style={{ color: '#047857' }}>
+                You&apos;ll need to verify your identity with a code from your authenticator app when signing in.
+              </WarningText>
+            </WarningContent>
+          </WarningBox>
         )}
-      </div>
-    </div>
+      </Section>
+
+      {/* Session Management */}
+      <Section>
+        <SectionTitle>
+          <History size={20} />
+          Session Management
+        </SectionTitle>
+        <SectionHint>Control how long you stay logged in</SectionHint>
+
+        <div>
+          <Label style={{ marginBottom: '1rem' }}>Session Timeout</Label>
+          <TimeoutOptions>
+            {[15, 30, 60, 120].map((minutes) => (
+              <TimeoutButton
+                key={minutes}
+                selected={security.sessionTimeout === minutes}
+                onClick={() => handleSessionTimeoutChange(minutes)}
+              >
+                {minutes} min
+              </TimeoutButton>
+            ))}
+          </TimeoutOptions>
+          <Hint>You&apos;ll be automatically logged out after {security.sessionTimeout} minutes of inactivity.</Hint>
+        </div>
+      </Section>
+
+      {saving && (
+        <SaveIndicator>
+          <SaveSpinner />
+          <SaveText>Saving...</SaveText>
+        </SaveIndicator>
+      )}
+    </Container>
   )
 }

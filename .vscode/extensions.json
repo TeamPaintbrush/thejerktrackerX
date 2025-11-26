@@ -1,0 +1,30 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "amazonwebservices.aws-toolkit-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "styled-components.vscode-styled-components",
+    "ms-vscode.makefile-tools",
+    "ms-vscode-remote.remote-containers",
+    "ms-vscode-remote.remote-ssh",
+    "ms-vscode-remote.remote-wsl",
+    "ms-vscode.remote-explorer",
+    "ms-vscode.remote-server",
+    "ms-vscode.remote-repositories",
+    "ms-vscode.remote-ssh-edit",
+    "ms-vscode.remote-ssh-explorer",
+    "ms-vscode.git-graph",
+    "ms-vscode.github-copilot",
+    "ms-vscode.github-copilot-chat",
+    "ms-vscode.thunder-client",
+    "ms-vscode.rest-client",
+    "ms-vscode.docker",
+    "ms-vscode.vscode-node-debug2",
+    "ms-vscode.vscode-node-debug",
+    "ms-vscode.vscode-typescript-tslint-plugin",
+    "ms-vscode.vscode-typescript-next",
+    "ms-vscode.vscode-typescript-next-nightly"
+  ]
+}

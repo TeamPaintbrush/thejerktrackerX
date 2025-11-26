@@ -12,6 +12,7 @@ import NextImage from 'next/image';
 import { Upload, Save, Eye, AlertCircle, Crown, Palette, Image as ImageIcon, Check } from 'lucide-react';
 import { canUploadLogo, canCustomizeColors, canCustomizeQRStyle, canEmbedLogoInQR, getUpgradeMessage } from '@/lib/tierFeatures';
 import type { SubscriptionTier } from '@/lib/tierFeatures';
+import BackButton from './BackButton';
 
 interface BrandingSettingsProps {
   userTier: SubscriptionTier;
@@ -414,6 +415,7 @@ export default function BrandingSettings({ userTier, currentBranding, onSave }: 
 
   return (
     <Container>
+      <BackButton />
       <Header>
         <Title>
           <Palette size={24} />

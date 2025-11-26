@@ -386,8 +386,8 @@ export default function PricingPage() {
             </Logo>
           </BackLink>
           
-          <Link href="/admin">
-            <Button $variant="primary">Launch Dashboard</Button>
+          <Link href="/auth/signin">
+            <Button $variant="primary">Sign In</Button>
           </Link>
         </NavContainer>
       </Navigation>
@@ -540,11 +540,13 @@ export default function PricingPage() {
             Our team is here to help you choose the perfect plan for your restaurant.
           </Text>
           <Flex $justify="center" $gap="1rem">
-            <Button $size="lg" $variant="primary">
-              <Headphones size={20} style={{ marginRight: '8px' }} />
-              Schedule a Demo
-            </Button>
-            <Link href="/admin">
+            <a href="mailto:support@jerktrackerx.com?subject=Schedule%20a%20Demo%20-%20TheJERKTracker&body=Hi%2C%0A%0AI'd%20like%20to%20schedule%20a%20demo%20of%20TheJERKTracker%20for%20my%20restaurant.%0A%0ARestaurant%20Name%3A%20%0AContact%20Name%3A%20%0APhone%3A%20%0ABest%20Time%20to%20Contact%3A%20%0A%0AThank%20you!">
+              <Button $size="lg" $variant="primary">
+                <Headphones size={20} style={{ marginRight: '8px' }} />
+                Schedule a Demo
+              </Button>
+            </a>
+            <Link href="/auth/signin">
               <Button $size="lg" $variant="outline">
                 Try It Free
               </Button>

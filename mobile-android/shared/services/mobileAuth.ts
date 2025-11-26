@@ -48,8 +48,13 @@ class MobileAuthService {
     this.setError(null);
 
     try {
+      // Always use Lambda endpoint for production
       const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').replace(/\/$/, '');
-      const loginUrl = API_BASE_URL ? `${API_BASE_URL}/api/mobile-auth/login/` : '/api/mobile-auth/login/';
+      if (!API_BASE_URL) {
+        throw new Error('Lambda API endpoint not configured');
+      }
+      
+      const loginUrl = `${API_BASE_URL}/auth/login`;
 
       const response = await fetch(loginUrl, {
         method: 'POST',
@@ -71,10 +76,71 @@ class MobileAuthService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
       this.setError(errorMessage);
+      
+      // Fallback to test accounts ONLY in development mode
+      if (process.env.NODE_ENV === 'development') {
+        const testAccount = this.getTestAccount(email, password);
+        if (testAccount) {
+          await this.setAuthenticated(testAccount);
+          return { success: true };
+        }
+      }
+      
       return { success: false, error: errorMessage };
     } finally {
       this.setLoading(false);
     }
+  }
+
+  /**
+   * Get test account (development only)
+   * Test accounts for local development when Lambda is unavailable
+   */
+  private getTestAccount(email: string, password: string): User | null {
+    const testAccounts = [
+      {
+        id: 'test_admin',
+        email: 'admin@jerktrackerx.com',
+        password: 'admin123',
+        name: 'Admin User',
+        role: 'admin' as const
+      },
+      {
+        id: 'test_manager',
+        email: 'manager@jerktrackerx.com',
+        password: 'manager123',
+        name: 'Manager User',
+        role: 'manager' as const
+      },
+      {
+        id: 'test_driver',
+        email: 'driver@jerktrackerx.com',
+        password: 'driver123',
+        name: 'Driver User',
+        role: 'driver' as const
+      },
+      {
+        id: 'test_customer',
+        email: 'customer@jerktrackerx.com',
+        password: 'customer123',
+        name: 'Customer User',
+        role: 'customer' as const
+      }
+    ];
+
+    const account = testAccounts.find(acc => acc.email === email && acc.password === password);
+    if (!account) return null;
+
+    return {
+      id: account.id,
+      email: account.email,
+      name: account.name,
+      role: account.role,
+      businessId: 'test_business',
+      phone: '+1234567890',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
   }
 
   /**
@@ -85,8 +151,16 @@ class MobileAuthService {
     this.setError(null);
 
     try {
+      // Always use Lambda endpoint for production
       const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').replace(/\/$/, '');
-      const signupUrl = API_BASE_URL ? `${API_BASE_URL}/api/mobile-auth/signup/` : '/api/mobile-auth/signup/';
+      if (!API_BASE_URL) {
+        throw new Error('Lambda API endpoint not configured');
+      }
+      
+      const signupUrl = `${API_BASE_URL}/auth/signup`;
+
+      console.log('🚀 Signup URL:', signupUrl);
+      console.log('📦 Signup data:', { email, password: '***', name, role });
 
       const response = await fetch(signupUrl, {
         method: 'POST',
@@ -96,7 +170,10 @@ class MobileAuthService {
         body: JSON.stringify({ email, password, name, role }),
       });
 
+      console.log('📡 Response status:', response.status, response.statusText);
+      
       const data = await response.json();
+      console.log('📄 Response data:', data);
 
       if (response.ok && data.success) {
         await this.setAuthenticated(data.user);
@@ -106,6 +183,7 @@ class MobileAuthService {
         return { success: false, error: data.error || 'Sign up failed' };
       }
     } catch (error) {
+      console.error('❌ Signup error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Sign up failed';
       this.setError(errorMessage);
       return { success: false, error: errorMessage };

@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { LoadingButton } from './Loading';
-import { useToast } from './Toast';
 import { Card, Heading, Grid, Flex } from '../styles/components';
 import FoodItemSelector from './FoodItemSelector';
 import { FoodItem, formatPrice } from '../lib/foodItems';
 import { LocationVerificationService, LocationVerificationResult } from '../lib/locationVerification';
 import { DynamoDBService, Location, Order as OrderType } from '../lib/dynamodb';
+import { showSuccess, showError, showInfo, showLoading, dismissToast } from '../lib/toast';
 
 const FormContainer = styled(Card)`
   background: white;
@@ -85,6 +85,28 @@ const Textarea = styled.textarea<{ disabled?: boolean }>`
   &::placeholder {
     color: #a8a29e;
   }
+`;
+
+const Select = styled.select`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d6d3d1;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  background: white;
+  color: #1c1917;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: #ed7734;
+    box-shadow: 0 0 0 2px #ed773420;
+  }
+`;
+
+const LocationSelector = styled.div`
+  margin-bottom: 1.5rem;
 `;
 
 const SubmitButton = styled(LoadingButton)`
@@ -240,6 +262,7 @@ interface OrderFormProps {
   onOrderCreated: (order: OrderType) => void;
   qrCodeId?: string; // QR code ID for location verification
   businessId?: string; // Business ID for location lookup
+  userSession?: any; // User session to auto-populate customer info
 }
 
 // Helper function to get client IP address
@@ -255,7 +278,7 @@ async function getClientIP(): Promise<string> {
   }
 }
 
-const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, qrCodeId, businessId }) => {
+const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, qrCodeId, businessId, userSession }) => {
   const [orderNumber, setOrderNumber] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -263,10 +286,20 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, qrCodeId, busines
   const [isLoading, setIsLoading] = useState(false);
   const [orderType, setOrderType] = useState<'preset' | 'custom'>('preset');
   const [selectedFoodItems, setSelectedFoodItems] = useState<SelectedFoodItem[]>([]);
-  const [locationVerification, setLocationVerification] = useState<LocationVerificationResult | null>(null);
   const [availableLocations, setAvailableLocations] = useState<Location[]>([]);
-  const [isVerifyingLocation, setIsVerifyingLocation] = useState(false);
-  const { addToast } = useToast();
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('');
+
+  // Auto-populate customer info from session
+  useEffect(() => {
+    if (userSession?.user) {
+      if (userSession.user.name && !customerName) {
+        setCustomerName(userSession.user.name);
+      }
+      if (userSession.user.email && !customerEmail) {
+        setCustomerEmail(userSession.user.email);
+      }
+    }
+  }, [userSession]);
 
   // Food item handlers
   const handleFoodItemSelect = (item: FoodItem) => {
@@ -319,7 +352,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, qrCodeId, busines
     }
   }, [selectedFoodItems, orderType]);
 
-  // Load available locations for verification
+  // Load available locations
   useEffect(() => {
     const loadLocations = async () => {
       if (businessId) {
@@ -327,13 +360,14 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, qrCodeId, busines
           const locations = await DynamoDBService.getLocationsByBusinessId(businessId);
           setAvailableLocations(locations);
           
-          // If QR code is provided, try to verify location immediately
-          if (qrCodeId) {
-            const verification = await LocationVerificationService.verifyLocationFromQRCode(
-              qrCodeId,
-              locations
+          // If QR code is provided, pre-select that location
+          if (qrCodeId && locations.length > 0) {
+            const matchedLocation = locations.find(loc => 
+              loc.qrCodes.primary === qrCodeId || loc.qrCodes.backup === qrCodeId
             );
-            setLocationVerification(verification);
+            if (matchedLocation) {
+              setSelectedLocationId(matchedLocation.id);
+            }
           }
         } catch (error) {
           console.error('Failed to load locations:', error);
@@ -348,67 +382,37 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, qrCodeId, busines
     e.preventDefault();
     
     if (!orderNumber.trim()) {
-      addToast({
-        type: 'error',
-        title: 'Order Number Required',
-        message: 'Please enter an order number to continue.'
-      });
+      showError('Please enter an order number to continue.');
       return;
     }
 
     if (orderType === 'preset' && selectedFoodItems.length === 0) {
-      addToast({
-        type: 'error',
-        title: 'No Items Selected',
-        message: 'Please select at least one food item or switch to custom order.'
-      });
+      showError('Please select at least one food item or switch to custom order.');
       return;
     }
 
     if (orderType === 'custom' && !orderDetails.trim()) {
-      addToast({
-        type: 'error',
-        title: 'Order Details Required',
-        message: 'Please enter order details or select preset items.'
-      });
+      showError('Please enter order details or select preset items.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Step 1: Verify location
-      let verificationResult = locationVerification;
-      
-      if (!verificationResult || !verificationResult.isValid) {
-        setIsVerifyingLocation(true);
-        // Load available locations if not already loaded
-        if (businessId && availableLocations.length === 0) {
-          const locations = await DynamoDBService.getLocationsByBusinessId(businessId);
-          setAvailableLocations(locations);
-        }
-        
-        // Perform location verification
-        verificationResult = await LocationVerificationService.verifyLocationForOrder(
-          qrCodeId,
-          availableLocations.length > 0 ? availableLocations : undefined
-        );
-        
-        setLocationVerification(verificationResult);
-        setIsVerifyingLocation(false);
-      }
-
-      if (!verificationResult.isValid) {
-        addToast({
-          type: 'error',
-          title: 'Location Verification Failed',
-          message: verificationResult.error || 'Unable to verify your location. Please try again.'
-        });
+      // Validate location selection if multiple locations exist
+      if (availableLocations.length > 0 && !selectedLocationId) {
+        showError('Please select a location for this order.');
         setIsLoading(false);
         return;
       }
 
-      // Step 2: Create order with location information
+      // Get selected location details
+      const selectedLocation = availableLocations.find(loc => loc.id === selectedLocationId);
+      const locationId = selectedLocationId || 'default';
+      const locationBusinessId = selectedLocation?.businessId || businessId || 'default';
+      const locationName = selectedLocation?.name || 'Default Location';
+
+      // Create order with location information
       const newOrder: OrderType = {
         id: Date.now().toString(),
         orderNumber: orderNumber.trim(),
@@ -418,29 +422,28 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, qrCodeId, busines
         status: 'pending',
         createdAt: new Date(),
         location: {
-          locationId: verificationResult.locationId || 'unknown',
-          businessId: verificationResult.businessId || businessId || 'unknown',
+          locationId: locationId,
+          locationName: locationName,
+          businessId: locationBusinessId,
           qrCodeId: qrCodeId,
-          verificationStatus: 'verified',
-          coordinates: verificationResult.coordinates,
+          verificationStatus: 'manual',
           ipAddress: await getClientIP(),
           deviceInfo: LocationVerificationService.getDeviceFingerprint()
         }
       };
 
-      // Step 3: Update location usage for billing
-      if (verificationResult.locationId) {
-        await DynamoDBService.updateLocationUsage(verificationResult.locationId, 1);
+      // Update location usage for billing
+      if (selectedLocationId && selectedLocation) {
+        await DynamoDBService.updateLocationUsage(selectedLocationId, 1);
       }
 
-      onOrderCreated(newOrder);
+      // Save order to database
+      const savedOrder = await DynamoDBService.createOrder(newOrder);
+      
+      onOrderCreated(savedOrder);
 
       // Success toast
-      addToast({
-        type: 'success',
-        title: 'Order Tracker created successfully!',
-        message: `Order #${orderNumber} has been created and QR code generated.`
-      });
+      showSuccess(`Order #${orderNumber} created successfully!`);
 
       // Reset form
       setOrderNumber('');
@@ -450,11 +453,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, qrCodeId, busines
       setSelectedFoodItems([]);
       setOrderType('preset');
     } catch (error) {
-      addToast({
-        type: 'error',
-        title: 'Failed to Create Order',
-        message: 'Please try again or contact support if the issue persists.'
-      });
+      showError('Failed to create order. Please try again or contact support.');
     } finally {
       setIsLoading(false);
     }
@@ -471,7 +470,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, qrCodeId, busines
         color: '#1c1917',
         margin: 0 
       }}>
-        Create New Order
+        Create New Order Tracker
       </h2>
 
       {/* Order Type Toggle */}
@@ -492,37 +491,24 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, qrCodeId, busines
         </ToggleButton>
       </OrderTypeToggle>
 
-      {/* Location Verification Status */}
-      {(locationVerification || isVerifyingLocation) && (
-        <LocationStatus 
-          $status={
-            isVerifyingLocation ? 'loading' :
-            !locationVerification ? 'pending' :
-            locationVerification.isValid ? 'verified' : 'failed'
-          }
-        >
-          <LocationStatusIcon 
-            $status={
-              isVerifyingLocation ? 'loading' :
-              !locationVerification ? 'pending' :
-              locationVerification.isValid ? 'verified' : 'failed'
-            } 
-          />
-          <LocationStatusText>
-            <div className="title">
-              {isVerifyingLocation ? 'Verifying Location...' :
-               !locationVerification ? 'Location Verification Pending' :
-               locationVerification.isValid ? 'Location Verified' : 'Location Verification Failed'}
-            </div>
-            <p className="details">
-              {isVerifyingLocation ? 'Please wait while we verify your location for billing accuracy.' :
-               !locationVerification ? 'Your location will be verified when you place an order.' :
-               locationVerification.isValid ? 
-                 `Order will be processed at ${locationVerification.locationId}${locationVerification.distance ? ` (${locationVerification.distance}m away)` : ''}` :
-                 locationVerification.error || 'Unable to verify location'}
-            </p>
-          </LocationStatusText>
-        </LocationStatus>
+      {/* Location Selection - shows which location this order is for */}
+      {availableLocations.length > 0 && (
+        <LocationSelector>
+          <Label htmlFor="location">Location *</Label>
+          <Select
+            id="location"
+            value={selectedLocationId}
+            onChange={(e) => setSelectedLocationId(e.target.value)}
+            required
+          >
+            <option value="">Select a location</option>
+            {availableLocations.map(location => (
+              <option key={location.id} value={location.id}>
+                {location.name} - {location.address.city}, {location.address.state}
+              </option>
+            ))}
+          </Select>
+        </LocationSelector>
       )}
 
       {/* Food Item Selector - only show for preset orders */}

@@ -184,14 +184,14 @@ export default function MobileAdminDashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4"
+            className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4"
           >
             <div className="flex items-center gap-2 mb-2">
-              <Activity className="w-5 h-5 text-purple-700" />
-              <p className="text-xs text-purple-700 font-medium">System Health</p>
+              <Activity className="w-5 h-5 text-orange-700" />
+              <p className="text-xs text-orange-700 font-medium">System Health</p>
             </div>
-            <p className="text-3xl font-bold text-purple-900">{data.systemOverview.systemHealth}%</p>
-            <p className="text-xs text-purple-600 mt-1">All systems operational</p>
+            <p className="text-3xl font-bold text-orange-900">{data.systemOverview.systemHealth}%</p>
+            <p className="text-xs text-orange-600 mt-1">All systems operational</p>
           </motion.div>
         </div>
 
@@ -285,8 +285,8 @@ export default function MobileAdminDashboard() {
               className="w-full bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-purple-700" />
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-orange-700" />
                 </div>
                 <div className="text-left">
                   <p className="font-bold text-gray-900">User Management</p>

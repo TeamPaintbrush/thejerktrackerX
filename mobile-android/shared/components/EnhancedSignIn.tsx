@@ -29,10 +29,12 @@ function useIsMobile() {
 import { MobileAuth } from '../services/mobileAuth';
 import { detectPlatform } from '../../../lib/platform';
 import { getDefaultRoute as getWebDefaultRoute } from '../../../lib/roles';
+import { signIn as nextAuthSignIn } from 'next-auth/react';
 
 // Use the proper mobile auth service
 function useMobileAuth() {
   const [user, setUser] = useState<any>(null);
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     // Get current user from auth service
@@ -41,27 +43,38 @@ function useMobileAuth() {
   }, []);
   
   const signIn = async (email: string, password: string) => {
-    const platform = detectPlatform();
-    const result = await MobileAuth.signIn(email, password);
-    if (result.success) {
-      const currentUser = MobileAuth.getCurrentUser();
-      
-      // Update lastLoginPlatform
-      if (currentUser) {
-        const updatedUser = {
-          ...currentUser,
-          lastLoginPlatform: platform,
-          updatedAt: new Date().toISOString()
-        };
-        localStorage.setItem(`user_${currentUser.email}`, JSON.stringify(updatedUser));
-        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-        setUser(updatedUser);
-      } else {
-        setUser(currentUser);
+    if (isMobile) {
+      // Mobile: Use Lambda API via MobileAuth
+      const platform = detectPlatform();
+      const result = await MobileAuth.signIn(email, password);
+      if (result.success) {
+        const currentUser = MobileAuth.getCurrentUser();
+        
+        // Update lastLoginPlatform
+        if (currentUser) {
+          const updatedUser = {
+            ...currentUser,
+            lastLoginPlatform: platform,
+            updatedAt: new Date().toISOString()
+          };
+          localStorage.setItem(`user_${currentUser.email}`, JSON.stringify(updatedUser));
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          setUser(updatedUser);
+        } else {
+          setUser(currentUser);
+        }
+        return true;
       }
-      return true;
+      return false;
+    } else {
+      // Web: Use NextAuth
+      const result = await nextAuthSignIn('credentials', {
+        email,
+        password,
+        redirect: false, // Don't redirect automatically
+      });
+      return result?.ok === true;
     }
-    return false;
   };
   
   return { user, signIn };
@@ -299,19 +312,55 @@ export default function EnhancedSignInPage() {
     setError('');
 
     try {
-      const success = await signIn(email, password);
+      // Determine redirect route based on platform and user role
+      let redirectRoute = '/customer'; // default
       
-      if (success) {
-        // Get user data from auth service
-        const currentUser = MobileAuth.getCurrentUser();
-        const redirectRoute = getDefaultRoute(currentUser?.role);
+      if (isMobile) {
+        // Mobile: Use MobileAuth
+        const success = await signIn(email, password);
         
-        console.log('✅ Sign in successful - redirecting to:', redirectRoute);
-        router.push(redirectRoute);
+        if (success) {
+          const currentUser = MobileAuth.getCurrentUser();
+          redirectRoute = getDefaultRoute(currentUser?.role);
+          console.log('✅ Mobile sign in successful - redirecting to:', redirectRoute);
+          window.location.href = redirectRoute;
+        } else {
+          setError('Invalid email or password');
+        }
       } else {
-        setError('Invalid email or password');
+        // Web: First get user role from Lambda, then call NextAuth with redirect
+        const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').replace(/\/$/, '');
+        const loginUrl = API_BASE_URL ? `${API_BASE_URL}/auth/login` : '/api/mobile-auth/login';
+        
+        const response = await fetch(loginUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, platform: 'web' })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.user) {
+          // Get the correct redirect route based on user role
+          redirectRoute = getDefaultRoute(data.user.role || 'customer');
+          console.log('✅ User role detected:', data.user.role, '- will redirect to:', redirectRoute);
+          
+          // Now call NextAuth signIn with the correct redirect URL
+          const result = await signIn(email, password);
+          
+          if (result) {
+            // Force redirect to the role-specific dashboard
+            console.log('✅ NextAuth sign in successful - redirecting to:', redirectRoute);
+            window.location.href = redirectRoute;
+          } else {
+            setError('Invalid email or password');
+          }
+        } else {
+          setError('Invalid email or password');
+        }
       }
     } catch (error) {
+      console.error('Sign in error:', error);
       setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
@@ -361,15 +410,6 @@ export default function EnhancedSignInPage() {
               <AlertCircle size={16} />
               {error}
             </ErrorMessage>
-          )}
-
-          {/* Show test credentials for testers only */}
-          {process.env.NODE_ENV === 'development' && (
-            <TestCredentials>
-              <strong>Test Credentials:</strong>
-              <br />
-              Admin: admin@jerktrackerx.com / admin123
-            </TestCredentials>
           )}
 
           <Form onSubmit={handleSubmit}>
@@ -469,7 +509,7 @@ export default function EnhancedSignInPage() {
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M14.258 0h2.78L11.124 7.63L18 16.615h-5.594L8.061 10.82L2.538 16.615H-.243L6.44 8.31L0 0h5.734L9.928 5.04L14.258 0zM13.273 14.945h1.541L4.86 1.566H3.198l10.075 13.379z" fill="#000000"/>
                 </svg>
-                Continue with Twitter
+                Continue with X
               </SocialButton>
             </SocialButtonsContainer>
           </SocialSignInSection>

@@ -220,13 +220,13 @@ export default function MobileManagerDashboard() {
             <p className="text-xs text-green-600">Today's earnings</p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3">
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
-              <Users className="w-4 h-4 text-purple-700" />
-              <p className="text-xs text-purple-700 font-medium">Active Drivers</p>
+              <Users className="w-4 h-4 text-orange-700" />
+              <p className="text-xs text-orange-700 font-medium">Active Drivers</p>
             </div>
-            <p className="text-2xl font-bold text-purple-900">{data.teamStats.activeDrivers}</p>
-            <p className="text-xs text-purple-600">of {data.teamStats.totalDrivers} total</p>
+            <p className="text-2xl font-bold text-orange-900">{data.teamStats.activeDrivers}</p>
+            <p className="text-xs text-orange-600">of {data.teamStats.totalDrivers} total</p>
           </div>
 
           <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-3">

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import styled from 'styled-components';
 import { QRCodeCanvas } from 'qrcode.react';
 import { DynamoDBService, Order } from '../../lib/dynamodb';
+import { buildTrackingUrl, getTrackingBaseUrl } from '@/lib/url';
 import { 
   CheckCircle, 
   AlertTriangle, 
@@ -250,9 +251,7 @@ export default function QRTestPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (typeof window !== 'undefined') {
-      setCurrentUrl(window.location.origin);
-    }
+    setCurrentUrl(getTrackingBaseUrl());
   }, []);
 
   useEffect(() => {
@@ -335,13 +334,9 @@ export default function QRTestPage() {
     // Test 4: QR Generation
     try {
       if (createdOrder) {
-        // Detect production by checking hostname
-        const isProduction = window.location.hostname.includes('github.io');
-        const basePath = isProduction ? '/thejerktrackerX' : '';
-        const orderUrl = `${window.location.origin}${basePath}/order?id=${createdOrder.id}`;
-        
-        console.log('QR Generation test - URL:', orderUrl, 'Production:', isProduction);
-        
+        const orderUrl = buildTrackingUrl(`/order?id=${createdOrder.id}`);
+        console.log('QR Generation test - URL:', orderUrl);
+
         if (orderUrl.includes('/order?id=') && createdOrder.id) {
           results.qrGeneration = 'success';
         }
@@ -355,20 +350,14 @@ export default function QRTestPage() {
     // Test 5: URL Structure
     try {
       if (createdOrder) {
-        // Detect production by checking hostname
-        const isProduction = window.location.hostname.includes('github.io');
-        const basePath = isProduction ? '/thejerktrackerX' : '';
-        const expectedPattern = isProduction 
-          ? /https:\/\/.*\.github\.io\/thejerktrackerX\/order\?id=.+/
-          : /http:\/\/localhost:3000\/order\?id=.+/;
-        
-        const orderUrl = `${window.location.origin}${basePath}/order?id=${createdOrder.id}`;
-        console.log('URL Structure test - URL:', orderUrl, 'Pattern:', expectedPattern.toString(), 'Production:', isProduction);
-        
-        if (expectedPattern.test(orderUrl)) {
+        const baseUrl = getTrackingBaseUrl();
+        const orderUrl = buildTrackingUrl(`/order?id=${createdOrder.id}`);
+        console.log('URL Structure test - URL:', orderUrl, 'Base:', baseUrl);
+
+        if (orderUrl.startsWith(baseUrl) && orderUrl.includes('/order?id=')) {
           results.urlStructure = 'success';
         } else {
-          console.warn('URL structure test failed:', orderUrl, 'does not match', expectedPattern.toString());
+          console.warn('URL structure test failed:', orderUrl, 'does not start with', baseUrl);
         }
       } else {
         console.warn('URL structure test skipped - no test order created');
@@ -542,28 +531,16 @@ export default function QRTestPage() {
                 <QRTitle>Test Order QR Code</QRTitle>
                 <QRWrapper>
                   <QRCodeCanvas 
-                    value={(() => {
-                      const isProduction = currentUrl.includes('github.io');
-                      const basePath = isProduction ? '/thejerktrackerX' : '';
-                      return `${currentUrl}${basePath}/order?id=${testOrder.id}`;
-                    })()}
+                    value={buildTrackingUrl(`/order?id=${testOrder.id}`)}
                     size={150}
                   />
                 </QRWrapper>
                 <QRUrl 
-                  href={(() => {
-                    const isProduction = currentUrl.includes('github.io');
-                    const basePath = isProduction ? '/thejerktrackerX' : '';
-                    return `${currentUrl}${basePath}/order?id=${testOrder.id}`;
-                  })()}
+                  href={buildTrackingUrl(`/order?id=${testOrder.id}`)}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {(() => {
-                    const isProduction = currentUrl.includes('github.io');
-                    const basePath = isProduction ? '/thejerktrackerX' : '';
-                    return `${currentUrl}${basePath}/order?id=${testOrder.id}`;
-                  })()}
+                  {buildTrackingUrl(`/order?id=${testOrder.id}`)}
                 </QRUrl>
                 <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
                   Order #{testOrder.orderNumber}

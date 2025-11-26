@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle, Smartphone } from 'lucide-react';
 import { Container, Button, Heading, Text, Flex, Card } from '../../../styles/components';
 import { detectPlatform } from '../../../lib/platform';
+import { signIn as nextAuthSignIn } from 'next-auth/react';
 
 // Platform detection
 function useIsMobile() {
@@ -29,6 +30,7 @@ function useIsMobile() {
 // Simplified mobile auth hook
 function useMobileAuth() {
   const [user, setUser] = useState<any>(null);
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -48,17 +50,62 @@ function useMobileAuth() {
     
     try {
       const platform = detectPlatform();
-      const newUser = { 
-        name, 
-        email, 
-        platform,  // Store the platform where account was created
-        lastLoginPlatform: platform,
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('mobile_auth_user', JSON.stringify(newUser));
-      setUser(newUser);
-      return true;
+      
+      // Call the API to create user in DynamoDB
+      const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').replace(/\/$/, '');
+      const signupUrl = API_BASE_URL ? `${API_BASE_URL}/auth/signup` : '/api/mobile-auth/signup';
+      
+      console.log('🚀 Signing up via:', signupUrl);
+      
+      const response = await fetch(signupUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          name, 
+          email, 
+          password,
+          role: 'customer' // Default role for new signups
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        if (isMobile) {
+          // Mobile: Store user data locally
+          const newUser = {
+            ...data.user,
+            platform,
+            lastLoginPlatform: platform,
+          };
+          
+          // Store in localStorage for persistence
+          localStorage.setItem('mobile_auth_user', JSON.stringify(newUser));
+          
+          setUser(newUser);
+        } else {
+          // Web: Sign in with NextAuth after successful signup
+          const signInResult = await nextAuthSignIn('credentials', {
+            email,
+            password,
+            redirect: false,
+          });
+          
+          if (!signInResult?.ok) {
+            console.error('Failed to sign in after signup');
+            return false;
+          }
+        }
+        
+        return true;
+      } else {
+        console.error('Signup failed:', data.error);
+        return false;
+      }
     } catch (error) {
+      console.error('Signup error:', error);
       return false;
     }
   };
@@ -341,10 +388,11 @@ export default function EnhancedSignUpPage() {
       const success = await signUp(fullName, email, password);
       
       if (success) {
-        setSuccess('Account created successfully! You can now sign in.');
+        setSuccess('Welcome! Redirecting to your dashboard...');
+        // Auto-redirect to customer dashboard after successful signup
         setTimeout(() => {
-          router.push('/auth/signin');
-        }, 2000);
+          window.location.href = '/customer';
+        }, 1500);
       } else {
         setError('Sign up failed. Please try again.');
       }
@@ -510,7 +558,7 @@ export default function EnhancedSignUpPage() {
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M14.258 0h2.78L11.124 7.63L18 16.615h-5.594L8.061 10.82L2.538 16.615H-.243L6.44 8.31L0 0h5.734L9.928 5.04L14.258 0zM13.273 14.945h1.541L4.86 1.566H3.198l10.075 13.379z" fill="#000000"/>
                 </svg>
-                Continue with Twitter
+                Continue with X
               </SocialButton>
             </SocialButtonsContainer>
           </SocialSignInSection>

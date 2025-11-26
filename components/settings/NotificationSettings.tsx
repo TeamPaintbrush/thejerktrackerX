@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import styled from 'styled-components'
 import { 
   Bell,
   Smartphone,
@@ -9,12 +9,208 @@ import {
   MessageSquare,
   Package,
   Truck,
-  Star,
-  DollarSign
+  Star
 } from 'lucide-react'
 import SettingsService, { type UserSettings } from '../../lib/settings'
+import { DynamoDBService } from '@/lib/dynamodb'
+import { useSession } from 'next-auth/react'
+import { showSuccess, showError, showInfo } from '@/lib/toast'
+import { Toaster } from 'react-hot-toast'
+import BackButton from './BackButton'
+
+const Container = styled.div`
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+`
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f5f5f4;
+`
+
+const Title = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1c1917;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+`
+
+const IconWrapper = styled.div`
+  width: 3rem;
+  height: 3rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+`
+
+const Description = styled.p`
+  color: #78716c;
+  font-size: 0.875rem;
+  margin: 0;
+`
+
+const Section = styled.div`
+  margin-bottom: 2rem;
+`
+
+const SectionTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #44403c;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`
+
+const SectionHint = styled.p`
+  font-size: 0.875rem;
+  color: #a8a29e;
+  margin-bottom: 1.5rem;
+`
+
+const SettingRow = styled.div`
+  background: #fafaf9;
+  border: 1px solid #e7e5e4;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #d6d3d1;
+    background: #f5f5f4;
+  }
+`
+
+const SettingInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+`
+
+const SettingIcon = styled.div<{ color: string }>`
+  width: 2.5rem;
+  height: 2.5rem;
+  background: ${props => props.color}15;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${props => props.color};
+`
+
+const SettingText = styled.div`
+  flex: 1;
+`
+
+const SettingTitle = styled.div`
+  font-weight: 600;
+  color: #1c1917;
+  margin-bottom: 0.25rem;
+`
+
+const SettingDescription = styled.div`
+  font-size: 0.875rem;
+  color: #78716c;
+`
+
+const Toggle = styled.button<{ enabled: boolean }>`
+  position: relative;
+  width: 2.75rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  background-color: ${props => props.enabled ? '#ed7734' : '#d6d3d1'};
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0.125rem;
+    left: ${props => props.enabled ? 'calc(100% - 1.375rem)' : '0.125rem'};
+    width: 1.25rem;
+    height: 1.25rem;
+    background: white;
+    border-radius: 9999px;
+    transition: left 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+`
+
+const LoadingOverlay = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+`
+
+const Spinner = styled.div`
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid #f5f5f4;
+  border-top-color: #ed7734;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`
+
+const SaveIndicator = styled.div`
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: white;
+  border: 1px solid #e7e5e4;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 50;
+`
+
+const SaveSpinner = styled.div`
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #f5f5f4;
+  border-top-color: #ed7734;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`
+
+const SaveText = styled.span`
+  font-size: 0.875rem;
+  color: #57534e;
+  font-weight: 500;
+`
 
 export default function NotificationSettings() {
+  const { data: session } = useSession()
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -34,10 +230,26 @@ export default function NotificationSettings() {
 
   const loadNotifications = async () => {
     try {
-      const mockSettings = SettingsService.createDefaultSettings('user@example.com', 'user@example.com')
-      setSettings(mockSettings)
-      setNotifications(mockSettings.notifications)
+      if (!session?.user?.id) {
+        setLoading(false)
+        return
+      }
+
+      const user = await DynamoDBService.getUserById(session.user.id)
+      if (user && user.settings) {
+        setSettings(user.settings)
+        setNotifications(user.settings.notifications)
+      } else {
+        const defaultSettings = SettingsService.createDefaultSettings(
+          session.user.id,
+          session.user.email || '',
+          session.user.name || ''
+        )
+        setSettings(defaultSettings)
+        setNotifications(defaultSettings.notifications)
+      }
     } catch (error) {
+      showError('Failed to load notification settings')
       console.error('Failed to load notifications:', error)
     } finally {
       setLoading(false)
@@ -45,17 +257,24 @@ export default function NotificationSettings() {
   }
 
   const handleToggle = async (key: keyof typeof notifications) => {
+    if (!session?.user?.id) return
+
     const updated = { ...notifications, [key]: !notifications[key] }
     setNotifications(updated)
     
     setSaving(true)
     try {
-      await SettingsService.updateUserSettings('user@example.com', {
+      await DynamoDBService.updateUserSettings(session.user.id, {
+        ...settings,
         notifications: updated,
         updatedAt: new Date()
       })
+      showInfo('Notification preferences updated')
     } catch (error) {
+      showError('Failed to save notification settings')
       console.error('Failed to save:', error)
+      // Revert on error
+      setNotifications(notifications)
     } finally {
       setSaving(false)
     }
@@ -63,152 +282,134 @@ export default function NotificationSettings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ed7734]"></div>
-      </div>
+      <Container>
+        <BackButton />
+        <LoadingOverlay>
+          <Spinner />
+        </LoadingOverlay>
+      </Container>
     )
   }
 
-  const Toggle = ({ enabled, onChange }: { enabled: boolean, onChange: () => void }) => (
-    <button
-      onClick={onChange}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        enabled ? 'bg-[#ed7734]' : 'bg-gray-300'
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          enabled ? 'translate-x-6' : 'translate-x-1'
-        }`}
-      />
-    </button>
-  )
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <Bell className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Notification Settings</h1>
-              <p className="text-gray-600 mt-1">Configure how you receive notifications</p>
-            </div>
+    <Container>
+      <Toaster />
+      <BackButton />
+      
+      <Header>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <IconWrapper>
+            <Bell size={24} />
+          </IconWrapper>
+          <div>
+            <Title>Notification Settings</Title>
+            <Description>Configure how you receive notifications</Description>
           </div>
         </div>
-      </div>
+      </Header>
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Channels */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl p-8 shadow-md border border-gray-200 mb-6"
-        >
-          <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <Smartphone className="w-5 h-5 text-[#ed7734]" />
-            Notification Channels
-          </h2>
-          <p className="text-sm text-gray-600 mb-6">Choose how you want to be notified</p>
+      {/* Channels */}
+      <Section>
+        <SectionTitle>
+          <Smartphone size={20} />
+          Notification Channels
+        </SectionTitle>
+        <SectionHint>Choose how you want to be notified</SectionHint>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-blue-600" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Push Notifications</h3>
-                  <p className="text-sm text-gray-600">Receive notifications on this device</p>
-                </div>
-              </div>
-              <Toggle enabled={notifications.push} onChange={() => handleToggle('push')} />
-            </div>
+        <SettingRow>
+          <SettingInfo>
+            <SettingIcon color="#3b82f6">
+              <Bell size={20} />
+            </SettingIcon>
+            <SettingText>
+              <SettingTitle>Push Notifications</SettingTitle>
+              <SettingDescription>Receive notifications on this device</SettingDescription>
+            </SettingText>
+          </SettingInfo>
+          <Toggle enabled={notifications.push} onClick={() => handleToggle('push')} />
+        </SettingRow>
 
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-purple-600" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Email Notifications</h3>
-                  <p className="text-sm text-gray-600">Receive updates via email</p>
-                </div>
-              </div>
-              <Toggle enabled={notifications.email} onChange={() => handleToggle('email')} />
-            </div>
+        <SettingRow>
+          <SettingInfo>
+            <SettingIcon color="#f97316">
+              <Mail size={20} />
+            </SettingIcon>
+            <SettingText>
+              <SettingTitle>Email Notifications</SettingTitle>
+              <SettingDescription>Receive updates via email</SettingDescription>
+            </SettingText>
+          </SettingInfo>
+          <Toggle enabled={notifications.email} onClick={() => handleToggle('email')} />
+        </SettingRow>
 
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <MessageSquare className="w-5 h-5 text-green-600" />
-                <div>
-                  <h3 className="font-medium text-gray-900">SMS Notifications</h3>
-                  <p className="text-sm text-gray-600">Receive text messages for important updates</p>
-                </div>
-              </div>
-              <Toggle enabled={notifications.sms} onChange={() => handleToggle('sms')} />
-            </div>
-          </div>
-        </motion.div>
+        <SettingRow>
+          <SettingInfo>
+            <SettingIcon color="#10b981">
+              <MessageSquare size={20} />
+            </SettingIcon>
+            <SettingText>
+              <SettingTitle>SMS Notifications</SettingTitle>
+              <SettingDescription>Receive text messages for important updates</SettingDescription>
+            </SettingText>
+          </SettingInfo>
+          <Toggle enabled={notifications.sms} onClick={() => handleToggle('sms')} />
+        </SettingRow>
+      </Section>
 
-        {/* Notification Types */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl p-8 shadow-md border border-gray-200"
-        >
-          <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <Package className="w-5 h-5 text-[#ed7734]" />
-            Notification Types
-          </h2>
-          <p className="text-sm text-gray-600 mb-6">Select which notifications you want to receive</p>
+      {/* Notification Types */}
+      <Section>
+        <SectionTitle>
+          <Package size={20} />
+          Notification Types
+        </SectionTitle>
+        <SectionHint>Select which notifications you want to receive</SectionHint>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Truck className="w-5 h-5 text-blue-600" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Order Updates</h3>
-                  <p className="text-sm text-gray-600">Status changes, delivery updates, and confirmations</p>
-                </div>
-              </div>
-              <Toggle enabled={notifications.orderUpdates} onChange={() => handleToggle('orderUpdates')} />
-            </div>
+        <SettingRow>
+          <SettingInfo>
+            <SettingIcon color="#3b82f6">
+              <Truck size={20} />
+            </SettingIcon>
+            <SettingText>
+              <SettingTitle>Order Updates</SettingTitle>
+              <SettingDescription>Status changes, delivery updates, and confirmations</SettingDescription>
+            </SettingText>
+          </SettingInfo>
+          <Toggle enabled={notifications.orderUpdates} onClick={() => handleToggle('orderUpdates')} />
+        </SettingRow>
 
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Star className="w-5 h-5 text-yellow-600" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Promotions</h3>
-                  <p className="text-sm text-gray-600">Special offers, discounts, and promotions</p>
-                </div>
-              </div>
-              <Toggle enabled={notifications.promotions} onChange={() => handleToggle('promotions')} />
-            </div>
+        <SettingRow>
+          <SettingInfo>
+            <SettingIcon color="#eab308">
+              <Star size={20} />
+            </SettingIcon>
+            <SettingText>
+              <SettingTitle>Promotions</SettingTitle>
+              <SettingDescription>Special offers, discounts, and promotions</SettingDescription>
+            </SettingText>
+          </SettingInfo>
+          <Toggle enabled={notifications.promotions} onClick={() => handleToggle('promotions')} />
+        </SettingRow>
 
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-purple-600" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Newsletter</h3>
-                  <p className="text-sm text-gray-600">Weekly updates and company news</p>
-                </div>
-              </div>
-              <Toggle enabled={notifications.newsletter} onChange={() => handleToggle('newsletter')} />
-            </div>
-          </div>
-        </motion.div>
+        <SettingRow>
+          <SettingInfo>
+            <SettingIcon color="#f97316">
+              <Mail size={20} />
+            </SettingIcon>
+            <SettingText>
+              <SettingTitle>Newsletter</SettingTitle>
+              <SettingDescription>Weekly updates and company news</SettingDescription>
+            </SettingText>
+          </SettingInfo>
+          <Toggle enabled={notifications.newsletter} onClick={() => handleToggle('newsletter')} />
+        </SettingRow>
+      </Section>
 
-        {saving && (
-          <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 border border-gray-200">
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#ed7734]"></div>
-              Saving...
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      {saving && (
+        <SaveIndicator>
+          <SaveSpinner />
+          <SaveText>Saving...</SaveText>
+        </SaveIndicator>
+      )}
+    </Container>
   )
 }

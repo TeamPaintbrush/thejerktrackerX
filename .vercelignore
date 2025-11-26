@@ -1,0 +1,17 @@
+# Exclude native and infra assets from Vercel uploads
+android/
+aws-lambda/
+aws-setup/
+api-backup/
+aws-setup/
+.github/
+.vscode/
+out/
+build-log.txt
+full-build.log
+verbose-build.log
+lambda-functions.zip
+test-payload.json
+scripts/build-mobile.js
+**/*.ps1
+logs_result.json

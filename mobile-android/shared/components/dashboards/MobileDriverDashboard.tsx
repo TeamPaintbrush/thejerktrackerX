@@ -370,38 +370,20 @@ const MobileDriverDashboard: React.FC<MobileDriverDashboardProps> = () => {
   const loadDeliveries = async () => {
     setIsLoading(true);
     
-    // Simulate loading with mock data
-    setTimeout(() => {
-      const mockDeliveries: Delivery[] = [
-        {
-          id: '1',
-          orderNumber: 'ORD-2025-001',
-          status: 'assigned',
-          customerName: 'John Smith',
-          pickupAddress: '123 Restaurant St, Kingston',
-          deliveryAddress: '456 Customer Ave, Spanish Town',
-          items: 'Jerk Chicken Platter, Rice & Peas',
-          distance: '5.2 km',
-          estimatedTime: '20 min',
-          payment: '$35.00'
-        },
-        {
-          id: '2',
-          orderNumber: 'ORD-2025-002',
-          status: 'picked_up',
-          customerName: 'Sarah Williams',
-          pickupAddress: '789 Food Plaza, Kingston',
-          deliveryAddress: '321 Delivery Rd, Portmore',
-          items: 'Curry Goat, Festival x2',
-          distance: '8.5 km',
-          estimatedTime: '30 min',
-          payment: '$45.00'
-        }
-      ];
+    try {
+      // Load real deliveries from API/DynamoDB
+      // const deliveries = await DynamoDBService.getDriverOrders(user?.id);
+      // setDeliveries(deliveries);
       
-      setDeliveries(mockDeliveries);
+      // For now, show empty state - no mock data
+      setDeliveries([]);
+    } catch (error) {
+      console.error('Error loading deliveries:', error);
+      // Show error state, no mock fallback
+      setDeliveries([]);
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   const handleStatusChange = (status: DriverStatus) => {

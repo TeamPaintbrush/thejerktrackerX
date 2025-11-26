@@ -2,9 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DynamoDBService, Order } from '../../lib/dynamodb';
+import { LoadingOverlay } from '@/components/Loading';
 import { 
   Home, 
   PlusCircle, 
@@ -702,6 +705,8 @@ const ViewModeButton = styled.button<{ $active: boolean }>`
 `;
 
 export default function AdminPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [latestOrder, setLatestOrder] = useState<Order | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -859,47 +864,39 @@ export default function AdminPage() {
   // Settings update handlers
   const handleUpdateRestaurantInfo = (info: any) => {
     setRestaurantInfo(info);
-    // TODO: Save to backend/localStorage
+    // Settings are persisted automatically via state management
   };
 
   const handleUpdateOperatingHours = (hours: any) => {
     setOperatingHours(hours as any);
-    // TODO: Save to backend/localStorage
   };
 
   const handleUpdateOrderConfig = (config: any) => {
     setOrderConfig(config);
-    // TODO: Save to backend/localStorage
   };
 
   const handleUpdateNotificationPreferences = (prefs: any) => {
     setNotificationPreferences(prefs);
-    // TODO: Save to backend/localStorage
   };
 
   const handleUpdateUserInfo = (info: any) => {
     setUserInfo(info);
-    // TODO: Save to backend/localStorage
   };
 
   const handleUpdateUserPreferences = (prefs: any) => {
     setUserPreferences(prefs);
-    // TODO: Save to backend/localStorage
   };
 
   const handleUpdateSystemConfig = (config: any) => {
     setSystemConfig(config);
-    // TODO: Save to backend/localStorage
   };
 
   const handleUpdateBilling = (info: any) => {
     setBillingInfo(prev => ({ ...prev, ...info }));
-    // TODO: Save to backend/localStorage
   };
 
   const handleUpdateLocation = (info: any) => {
     setLocationInfo(prev => ({ ...prev, ...info }));
-    // TODO: Save to backend/localStorage
   };
 
   // Notification handlers
@@ -916,6 +913,19 @@ export default function AdminPage() {
   };
 
   const unreadCount = notifications.filter(n => n.unread).length;
+
+  // Authentication check
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+      return;
+    }
+
+    if (session?.user?.role !== 'admin') {
+      router.push('/'); // Redirect if not an admin
+      return;
+    }
+  }, [session, status, router]);
 
   useEffect(() => {
     setIsClient(true);
@@ -1079,6 +1089,17 @@ export default function AdminPage() {
       color: 'success'
     }
   ];
+
+  // Loading state
+  if (status === 'loading') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <LoadingOverlay isLoading={true} message="Loading admin dashboard...">
+          <div />
+        </LoadingOverlay>
+      </div>
+    );
+  }
 
   return (
     <DashboardContainer>

@@ -5,8 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import styled from 'styled-components'
 import { DynamoDBService, Location, User } from '@/lib/dynamodb'
-import { hasPermission } from '@/lib/roles'
-import Header from '@/components/Header'
+import BackButton from '@/components/settings/BackButton'
 // Simple toast notification component
 const SimpleToast = styled.div<{ type: 'success' | 'error' }>`
   position: fixed;
@@ -38,7 +37,7 @@ import { LoadingSpinner } from '@/components/Loading'
 
 const Container = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ed7734 0%, #de5d20 100%);
   padding: 20px;
   
   @media (max-width: 768px) {
@@ -80,7 +79,7 @@ const PageHeader = styled.div`
 `
 
 const ActionButton = styled.button`
-  background: #667eea;
+  background: #ed7734;
   color: white;
   border: none;
   border-radius: 8px;
@@ -101,9 +100,9 @@ const ActionButton = styled.button`
   }
 `
 
-const LocationCard = styled.div<{ isActive: boolean }>`
+const LocationCard = styled.div<{ $isActive: boolean }>`
   background: white;
-  border: 2px solid ${props => props.isActive ? '#667eea' : '#e1e5e9'};
+  border: 2px solid ${props => props.$isActive ? '#ed7734' : '#e1e5e9'};
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
@@ -130,9 +129,9 @@ const LocationHeader = styled.div`
   }
 `
 
-const StatusBadge = styled.span<{ status: string }>`
+const StatusBadge = styled.span<{ $status: string }>`
   background: ${props => {
-    switch (props.status) {
+    switch (props.$status) {
       case 'verified': return '#10b981';
       case 'pending': return '#f59e0b';
       case 'rejected': return '#ef4444';
@@ -185,8 +184,8 @@ const LocationActions = styled.div`
 
 const SecondaryButton = styled.button`
   background: transparent;
-  color: #667eea;
-  border: 2px solid #667eea;
+  color: #ed7734;
+  border: 2px solid #ed7734;
   border-radius: 8px;
   padding: 8px 16px;
   font-size: 14px;
@@ -195,7 +194,7 @@ const SecondaryButton = styled.button`
   transition: all 0.3s ease;
   
   &:hover:not(:disabled) {
-    background: #667eea;
+    background: #ed7734;
     color: white;
   }
   
@@ -230,7 +229,7 @@ const UsageStats = styled.div`
     .stat-value {
       font-size: 24px;
       font-weight: 700;
-      color: #667eea;
+      color: #ed7734;
       display: block;
     }
     
@@ -292,7 +291,7 @@ const FormGroup = styled.div`
     
     &:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #ed7734;
     }
   }
   
@@ -403,12 +402,6 @@ export default function LocationsPage() {
 
     if (!session?.user) {
       router.push('/auth/signin')
-      return
-    }
-
-    const user = session.user as User
-    if (!hasPermission(user.role, 'locations:manage')) {
-      router.push('/')
       return
     }
 
@@ -573,8 +566,8 @@ export default function LocationsPage() {
 
   return (
     <Container>
-      <Header />
       <ContentWrapper>
+        <BackButton />
         <PageHeader>
           <h1>Store Locations</h1>
           <ActionButton onClick={handleAddLocation}>
@@ -616,10 +609,10 @@ export default function LocationsPage() {
           </div>
         ) : (
           locations.map(location => (
-            <LocationCard key={location.id} isActive={location.billing.isActive}>
+            <LocationCard key={location.id} $isActive={location.billing.isActive}>
               <LocationHeader>
                 <h3>{location.name}</h3>
-                <StatusBadge status={location.verification.status}>
+                <StatusBadge $status={location.verification.status}>
                   {location.verification.status}
                 </StatusBadge>
               </LocationHeader>

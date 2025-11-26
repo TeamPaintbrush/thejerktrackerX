@@ -376,8 +376,8 @@ export default function HowItWorksPage() {
             </Logo>
           </BackLink>
           
-          <Link href="/admin">
-            <Button $variant="primary">Launch Dashboard</Button>
+          <Link href="/auth/signin">
+            <Button $variant="primary">Sign In</Button>
           </Link>
         </NavContainer>
       </Navigation>

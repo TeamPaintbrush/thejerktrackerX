@@ -250,10 +250,17 @@ export default function MobileSignUpPage() {
       );
 
       if (result.success) {
-        setSuccess('Account created successfully! Redirecting...');
+        // User is now automatically authenticated by MobileAuth.signUp
+        const user = MobileAuth.getCurrentUser();
+        const defaultRoute = MobileAuth.getDefaultRoute(user?.role || 'customer');
+        
+        // Show welcome message
+        setSuccess(`🎉 Welcome to The JERK Tracker, ${formData.name}! Taking you to your dashboard...`);
+        
+        // Redirect to dashboard after brief delay
         setTimeout(() => {
-          router.push('/mobile/dashboard');
-        }, 1500);
+          router.push(defaultRoute);
+        }, 2000);
       } else {
         setError(result.error || 'Failed to create account');
       }

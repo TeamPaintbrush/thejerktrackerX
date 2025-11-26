@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import styled from 'styled-components'
 import { 
   User,
   Mail,
@@ -9,13 +9,247 @@ import {
   MapPin,
   Edit3,
   Save,
-  Camera,
-  Globe,
-  Building
+  X,
+  Briefcase
 } from 'lucide-react'
 import SettingsService, { type UserSettings } from '../../lib/settings'
+import { DynamoDBService } from '@/lib/dynamodb'
+import { useSession } from 'next-auth/react'
+import { showSuccess, showError, showLoading, dismissToast } from '@/lib/toast'
+import { Toaster } from 'react-hot-toast'
+import BackButton from './BackButton'
+
+const Container = styled.div`
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+`
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f5f5f4;
+`
+
+const Title = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1c1917;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+`
+
+const IconWrapper = styled.div`
+  width: 3rem;
+  height: 3rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+`
+
+const Description = styled.p`
+  color: #78716c;
+  font-size: 0.875rem;
+  margin: 0;
+`
+
+const Section = styled.div`
+  margin-bottom: 2rem;
+`
+
+const SectionTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #44403c;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+`
+
+const FormField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`
+
+const Label = styled.label`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #57534e;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d6d3d1;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #ed7734;
+    box-shadow: 0 0 0 3px rgba(237, 119, 52, 0.1);
+  }
+
+  &:disabled {
+    background: #f5f5f4;
+    color: #a8a29e;
+    cursor: not-allowed;
+  }
+`
+
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d6d3d1;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #ed7734;
+    box-shadow: 0 0 0 3px rgba(237, 119, 52, 0.1);
+  }
+
+  &:disabled {
+    background: #f5f5f4;
+    color: #a8a29e;
+    cursor: not-allowed;
+  }
+`
+
+const InfoBox = styled.div`
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 1px solid #93c5fd;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: start;
+  gap: 0.75rem;
+`
+
+const InfoContent = styled.div`
+  flex: 1;
+`
+
+const InfoTitle = styled.div`
+  font-weight: 600;
+  color: #1e3a8a;
+  margin-bottom: 0.25rem;
+`
+
+const InfoText = styled.div`
+  font-size: 0.875rem;
+  color: #1e40af;
+`
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+`
+
+const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'success' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+
+  ${props => props.variant === 'primary' && `
+    background: linear-gradient(135deg, #ed7734 0%, #de5d20 100%);
+    color: white;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(237, 119, 52, 0.3);
+    }
+  `}
+
+  ${props => props.variant === 'secondary' && `
+    background: #f5f5f4;
+    color: #57534e;
+
+    &:hover {
+      background: #e7e5e4;
+    }
+  `}
+
+  ${props => props.variant === 'success' && `
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+  `}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+`
+
+const Hint = styled.p`
+  font-size: 0.75rem;
+  color: #a8a29e;
+  margin: 0.25rem 0 0 0;
+`
+
+const LoadingOverlay = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+`
+
+const Spinner = styled.div`
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid #f5f5f4;
+  border-top-color: #ed7734;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`
 
 export default function ProfileSettings() {
+  const { data: session } = useSession()
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -36,22 +270,30 @@ export default function ProfileSettings() {
 
   const loadProfile = async () => {
     try {
-      // Mock data for now - in production this would call the API
-      const mockSettings: UserSettings = SettingsService.createDefaultSettings(
-        'user@example.com',
-        'user@example.com',
-        'John Doe'
-      )
-      setSettings(mockSettings)
-      setFormData({
-        name: mockSettings.profile?.name || '',
-        email: mockSettings.profile?.email || '',
-        phone: mockSettings.profile?.phone || '',
-        bio: mockSettings.profile?.bio || '',
-        location: mockSettings.profile?.location || '',
-        role: mockSettings.profile?.role || 'customer'
-      })
+      if (!session?.user?.id) {
+        setLoading(false)
+        return
+      }
+
+      const user = await DynamoDBService.getUserById(session.user.id)
+      if (user) {
+        const userSettings: UserSettings = user.settings || SettingsService.createDefaultSettings(
+          user.id,
+          user.email,
+          user.name
+        )
+        setSettings(userSettings)
+        setFormData({
+          name: user.name || '',
+          email: user.email || '',
+          phone: user.phone || '',
+          bio: userSettings.profile?.bio || '',
+          location: userSettings.profile?.location || '',
+          role: user.role
+        })
+      }
     } catch (error) {
+      showError('Failed to load profile')
       console.error('Failed to load profile:', error)
     } finally {
       setLoading(false)
@@ -59,18 +301,35 @@ export default function ProfileSettings() {
   }
 
   const handleSave = async () => {
+    if (!session?.user?.id) return
+
+    const toastId = showLoading('Saving profile changes...')
     setSaving(true)
+    
     try {
       const updates = {
-        profile: {
-          ...formData
-        },
-        updatedAt: new Date()
+        name: formData.name,
+        phone: formData.phone,
+        settings: {
+          ...settings,
+          profile: {
+            ...settings?.profile,
+            ...formData,
+            updatedAt: new Date()
+          },
+          updatedAt: new Date()
+        }
       }
-      await SettingsService.updateUserSettings('user@example.com', updates)
+      
+      await DynamoDBService.updateUser(session.user.id, updates)
+      
+      dismissToast(toastId)
+      showSuccess('Profile updated successfully!')
       setIsEditing(false)
       await loadProfile()
     } catch (error) {
+      dismissToast(toastId)
+      showError('Failed to save profile')
       console.error('Failed to save profile:', error)
     } finally {
       setSaving(false)
@@ -93,225 +352,135 @@ export default function ProfileSettings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ed7734]"></div>
-      </div>
+      <Container>
+        <BackButton />
+        <LoadingOverlay>
+          <Spinner />
+        </LoadingOverlay>
+      </Container>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <User className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
-                <p className="text-gray-600 mt-1">Manage your account information</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleCancel}
-                    disabled={saving}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="px-4 py-2 bg-gradient-to-r from-[#ed7734] to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-[#ed7734] to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all flex items-center gap-2"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Edit Profile
-                </button>
-              )}
-            </div>
+    <Container>
+      <Toaster />
+      <BackButton />
+      
+      <Header>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <IconWrapper>
+            <User size={24} />
+          </IconWrapper>
+          <div>
+            <Title>Profile Settings</Title>
+            <Description>Manage your account information</Description>
           </div>
         </div>
-      </div>
+        {!isEditing ? (
+          <Button variant="primary" onClick={() => setIsEditing(true)}>
+            <Edit3 size={16} />
+            Edit Profile
+          </Button>
+        ) : (
+          <ButtonGroup>
+            <Button variant="secondary" onClick={handleCancel}>
+              <X size={16} />
+              Cancel
+            </Button>
+            <Button variant="success" onClick={handleSave} disabled={saving}>
+              <Save size={16} />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </ButtonGroup>
+        )}
+      </Header>
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Avatar Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl p-8 shadow-md border border-gray-200 mb-6"
-        >
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#ed7734] to-orange-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                {formData.name.charAt(0).toUpperCase() || 'U'}
-              </div>
-              {isEditing && (
-                <button className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-[#ed7734] border-4 border-white text-white hover:bg-orange-600 transition-colors flex items-center justify-center shadow-lg">
-                  <Camera className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">{formData.name || 'User Name'}</h2>
-              <p className="text-gray-600 mt-1">{formData.email || 'email@example.com'}</p>
-              {isEditing && (
-                <p className="text-sm text-gray-500 mt-2">Click the camera icon to change your avatar</p>
-              )}
-            </div>
-          </div>
-        </motion.div>
+      <Section>
+        <SectionTitle>
+          <User size={20} />
+          Personal Information
+        </SectionTitle>
+        
+        <FormGrid>
+          <FormField>
+            <Label>
+              <User size={14} />
+              Full Name
+            </Label>
+            <Input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              disabled={!isEditing}
+              placeholder="Enter your full name"
+            />
+          </FormField>
 
-        {/* Personal Information */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl p-8 shadow-md border border-gray-200 mb-6"
-        >
-          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <User className="w-5 h-5 text-[#ed7734]" />
-            Personal Information
-          </h2>
+          <FormField>
+            <Label>
+              <Mail size={14} />
+              Email Address
+            </Label>
+            <Input
+              type="email"
+              value={formData.email}
+              disabled
+            />
+            <Hint>Email cannot be changed</Hint>
+          </FormField>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ed7734] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
-                  placeholder="Enter your full name"
-                />
-              </div>
-            </div>
+          <FormField>
+            <Label>
+              <Phone size={14} />
+              Phone Number
+            </Label>
+            <Input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              disabled={!isEditing}
+              placeholder="(555) 123-4567"
+            />
+          </FormField>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ed7734] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
-                  placeholder="Enter your email"
-                />
-              </div>
-            </div>
+          <FormField>
+            <Label>
+              <MapPin size={14} />
+              Location
+            </Label>
+            <Input
+              type="text"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              disabled={!isEditing}
+              placeholder="City, State"
+            />
+          </FormField>
+        </FormGrid>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ed7734] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
-                  placeholder="Enter your phone number"
-                />
-              </div>
-            </div>
+        <FormField>
+          <Label>
+            <Briefcase size={14} />
+            Bio
+          </Label>
+          <TextArea
+            value={formData.bio}
+            onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+            disabled={!isEditing}
+            placeholder="Tell us about yourself..."
+          />
+        </FormField>
+      </Section>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Role
-              </label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ed7734] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
-                  placeholder="Enter your role"
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ed7734] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
-                  placeholder="Enter your location"
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Bio
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                <textarea
-                  value={formData.bio}
-                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  disabled={!isEditing}
-                  rows={3}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ed7734] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
-                  placeholder="Tell us about yourself"
-                />
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Additional Information */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl p-8 shadow-md border border-gray-200"
-        >
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Globe className="w-5 h-5 text-[#ed7734]" />
-            Account Information
-          </h2>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> Language, timezone, and other preferences can be managed from the main Settings page.
-            </p>
-          </div>
-        </motion.div>
-      </div>
-    </div>
+      <InfoBox>
+        <User size={20} style={{ color: '#1e3a8a', flexShrink: 0 }} />
+        <InfoContent>
+          <InfoTitle>Account Role</InfoTitle>
+          <InfoText>
+            Your current role: <strong style={{ textTransform: 'capitalize' }}>{formData.role}</strong>
+          </InfoText>
+        </InfoContent>
+      </InfoBox>
+    </Container>
   )
 }

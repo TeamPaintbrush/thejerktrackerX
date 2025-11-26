@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { Order } from '../../lib/dynamodb'
+import { buildTrackingUrl } from '@/lib/url'
 
 interface QRManagementProps {
   orders: Order[]
@@ -551,7 +552,7 @@ const QRManagement: React.FC<QRManagementProps> = ({
 
                 <QRCodeSection>
                   <QRCodeCanvas
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/orders/${order.id}`}
+                    value={buildTrackingUrl(`/orders/${order.id}`)}
                     size={120}
                     level="M"
                     includeMargin={true}

@@ -28,6 +28,8 @@ import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import BackButton from '../../../mobile-android/shared/components/BackButton';
+import qrScannerService from '@/services/QRScannerService';
+import { buildTrackingUrl } from '@/lib/url';
 
 // Scan history interface
 interface ScanHistoryItem {
@@ -768,7 +770,7 @@ function MobileQRContent() {
     try {
       // Call Vercel API to fetch orders from DynamoDB
       // IMPORTANT: Include trailing slash to avoid Vercel redirects that break CORS
-      const API_BASE_URL = 'https://thejerktracker0.vercel.app';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_QR_TRACKING_BASE_URL || 'https://thejerktracker0.vercel.app';
       console.log('📡 Fetching orders from:', `${API_BASE_URL}/api/orders/`);
       
       const response = await fetch(`${API_BASE_URL}/api/orders/`, {
@@ -820,64 +822,48 @@ function MobileQRContent() {
 
   const handleScanQR = async () => {
     try {
-      // Haptic feedback on button press
+      if (!qrScannerService.isSupported()) {
+        alert('⚠️ QR scanning is only available inside the Android app.');
+        return;
+      }
+
       if (Capacitor.isNativePlatform()) {
         await Haptics.impact({ style: ImpactStyle.Light });
       }
-      
-      // Import and use CapacitorBarcodeScanner
-      const { CapacitorBarcodeScanner } = await import('@capacitor/barcode-scanner');
-      
-      // Note: This plugin has limited permission APIs - check docs for current version
-      // For now, attempt scan and catch permission errors
-      
-      // Hide app content and show camera
-      document.body.classList.add('scanner-active');
-      
-      // Start scanning
-      const result = await CapacitorBarcodeScanner.scanBarcode({
-        hint: 1 // QR_CODE
-      });
-      
-      // Remove scanner
-      document.body.classList.remove('scanner-active');
-      
-      if (result.ScanResult) {
-        // Success haptic
-        if (Capacitor.isNativePlatform()) {
-          await Haptics.impact({ style: ImpactStyle.Medium });
-        }
-        
-        try {
-          // Parse QR code JSON data
-          const qrData = JSON.parse(result.ScanResult);
-          
-          if (qrData.orderId && qrData.type === 'pickup_verification') {
-            // Find order in list
-            const scannedOrder = orders.find(o => o.id === qrData.orderId);
-            
-            if (scannedOrder) {
-              // Add to scan history
-              addToScanHistory(qrData.orderId, qrData.orderNumber, 'scan');
-              
-              // Show driver information modal
-              setScannedOrderData(qrData);
-              setShowDriverModal(true);
-            } else {
-              alert(`⚠️ Order not found\n\nOrder #${qrData.orderNumber}\n\nThis order may not be in your current list.`);
-            }
+
+      const scanResult = await qrScannerService.startScan();
+
+      if (!scanResult?.text) {
+        await Haptics.impact({ style: ImpactStyle.Light });
+        alert('⚠️ Scan cancelled or no QR code detected.');
+        return;
+      }
+
+      if (Capacitor.isNativePlatform()) {
+        await Haptics.impact({ style: ImpactStyle.Medium });
+      }
+
+      try {
+        const qrData = JSON.parse(scanResult.text);
+
+        if (qrData.orderId && qrData.type === 'pickup_verification') {
+          const scannedOrder = orders.find(o => o.id === qrData.orderId);
+
+          if (scannedOrder) {
+            addToScanHistory(qrData.orderId, qrData.orderNumber, 'scan');
+            setScannedOrderData(qrData);
+            setShowDriverModal(true);
           } else {
-            alert('⚠️ Invalid QR Code\n\nThis QR code is not a valid pickup verification code.');
+            alert(`⚠️ Order not found\n\nOrder #${qrData.orderNumber}\n\nThis order may not be in your current list.`);
           }
-        } catch (parseError) {
-          // Fallback for non-JSON QR codes (legacy support)
-          alert('⚠️ Invalid QR Code Format\n\nPlease scan a valid order QR code.');
+        } else {
+          alert('⚠️ Invalid QR Code\n\nThis QR code is not a valid pickup verification code.');
         }
+      } catch (parseError) {
+        alert('⚠️ Invalid QR Code Format\n\nPlease scan a valid order QR code.');
       }
     } catch (error) {
-      document.body.classList.remove('scanner-active');
       console.error('Scan error:', error);
-      
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       if (!errorMessage.includes('cancelled')) {
         alert(`❌ Scanner Error\n\n${errorMessage}\n\nPlease try again.`);
@@ -928,7 +914,7 @@ function MobileQRContent() {
   const handleShareQR = async (orderId: string) => {
     try {
       const order = orders.find(o => o.id === orderId);
-      const trackingUrl = `${window.location.origin}/qr-tracking?order=${orderId}`;
+      const trackingUrl = buildTrackingUrl(`/qr-tracking?order=${orderId}`);
       
       if (Capacitor.isNativePlatform()) {
         // Use native share on mobile
@@ -968,7 +954,7 @@ function MobileQRContent() {
     try {
       const order = orders.find(o => o.id === orderId);
       const QRCode = await import('qrcode');
-      const trackingUrl = `${window.location.origin}/qr-tracking?order=${orderId}`;
+      const trackingUrl = buildTrackingUrl(`/qr-tracking?order=${orderId}`);
       
       // Generate high-quality QR code
       const qrDataUrl = await QRCode.toDataURL(trackingUrl, {
@@ -1149,7 +1135,7 @@ function MobileQRContent() {
                     <QRCodeArea>
                       <QRPlaceholder>
                         <QRCodeSVG
-                          value={`https://thejerktracker0.vercel.app/driver-pickup?order=${order.id}`}
+                          value={buildTrackingUrl(`/driver-pickup?order=${order.id}`)}
                           size={72}
                           level="H"
                           includeMargin={false}
@@ -1281,7 +1267,7 @@ function MobileQRContent() {
 
           <QRCodeLarge>
             <QRCodeSVG
-              value={`https://thejerktracker0.vercel.app/driver-pickup?order=${fullscreenOrder.id}`}
+              value={buildTrackingUrl(`/driver-pickup?order=${fullscreenOrder.id}`)}
               size={268}
               level="H"
               includeMargin={false}

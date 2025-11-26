@@ -99,8 +99,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RolePermissions> = {
       'orders:create', 'orders:read',
       'customer:order_history', 'customer:profile'
     ],
-    routes: ['/order', '/profile', '/order-history'],
-    defaultRoute: '/order'
+    routes: ['/customer', '/order', '/profile', '/order-history'],
+    defaultRoute: '/customer'
   },
   
   user: {

@@ -25,6 +25,12 @@ Transform The JERK Tracker into a comprehensive restaurant order management and 
   - User profile settings with account information
   - Password change with validation
   - Preference settings (language, timezone, date format, currency)
+- [ ] **OAuth Social Authentication** (Planned)
+  - Google OAuth integration for sign-in/sign-up
+  - Facebook OAuth integration for sign-in/sign-up
+  - X (Twitter) OAuth integration for sign-in/sign-up
+  - OAuth token handling in Lambda backend
+  - Social account linking to existing accounts
 - [ ] **User Role Expansion**
   - Customer role implementation
   - Driver role with pickup permissions
