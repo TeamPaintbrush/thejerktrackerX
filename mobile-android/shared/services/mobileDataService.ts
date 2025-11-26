@@ -2,7 +2,7 @@
 
 import { Order, Location, MenuItem } from '@/lib/dynamodb';
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').replace(/\/$/, '');
+const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').trim().replace(/\/$/, '');
 const MOBILE_API_KEY = process.env.NEXT_PUBLIC_MOBILE_API_KEY;
 const LOCATION_ADMIN_KEY = process.env.NEXT_PUBLIC_MOBILE_LOCATION_ADMIN_KEY;
 

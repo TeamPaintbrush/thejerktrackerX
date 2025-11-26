@@ -290,18 +290,26 @@ export class DynamoDBService {
   private static fallbackMode = false;
   private static readonly ORDER_MEMORY_KEY = 'orders';
 
+  private static sanitizeEnvValue(value?: string | null) {
+    if (!value) {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : undefined;
+  }
+
   // AWS DynamoDB Configuration
   private static getConfig() {
     return {
-      region: process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1',
-      tableName: process.env.NEXT_PUBLIC_DYNAMODB_TABLE_NAME || 'jerktracker-orders',
-      enableDynamoDB: process.env.NEXT_PUBLIC_ENABLE_DYNAMODB !== 'false',
-      fallbackMode: process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true'
+      region: this.sanitizeEnvValue(process.env.NEXT_PUBLIC_AWS_REGION) || 'us-east-1',
+      tableName: this.sanitizeEnvValue(process.env.NEXT_PUBLIC_DYNAMODB_TABLE_NAME) || 'jerktracker-orders',
+      enableDynamoDB: this.sanitizeEnvValue(process.env.NEXT_PUBLIC_ENABLE_DYNAMODB) !== 'false',
+      fallbackMode: this.sanitizeEnvValue(process.env.NEXT_PUBLIC_FALLBACK_MODE) === 'true'
     };
   }
 
   private static getUsersTableName() {
-    return process.env.NEXT_PUBLIC_DYNAMODB_USERS_TABLE || 'jerktracker-users';
+    return this.sanitizeEnvValue(process.env.NEXT_PUBLIC_DYNAMODB_USERS_TABLE) || 'jerktracker-users';
   }
 
   // Initialize DynamoDB Client

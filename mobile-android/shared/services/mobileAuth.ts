@@ -49,7 +49,7 @@ class MobileAuthService {
 
     try {
       // Always use Lambda endpoint for production
-      const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').replace(/\/$/, '');
+      const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').trim().replace(/\/$/, '');
       if (!API_BASE_URL) {
         throw new Error('Lambda API endpoint not configured');
       }
@@ -152,7 +152,7 @@ class MobileAuthService {
 
     try {
       // Always use Lambda endpoint for production
-      const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').replace(/\/$/, '');
+      const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').trim().replace(/\/$/, '');
       if (!API_BASE_URL) {
         throw new Error('Lambda API endpoint not configured');
       }

@@ -52,7 +52,7 @@ function useMobileAuth() {
       const platform = detectPlatform();
       
       // Call the API to create user in DynamoDB
-      const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').replace(/\/$/, '');
+      const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').trim().replace(/\/$/, '');
       const signupUrl = API_BASE_URL ? `${API_BASE_URL}/auth/signup` : '/api/mobile-auth/signup';
       
       console.log('🚀 Signing up via:', signupUrl);

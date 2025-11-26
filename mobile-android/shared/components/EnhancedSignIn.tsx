@@ -329,7 +329,7 @@ export default function EnhancedSignInPage() {
         }
       } else {
         // Web: First get user role from Lambda, then call NextAuth with redirect
-        const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').replace(/\/$/, '');
+        const API_BASE_URL = (process.env.NEXT_PUBLIC_MOBILE_API_BASE_URL || '').trim().replace(/\/$/, '');
         const loginUrl = API_BASE_URL ? `${API_BASE_URL}/auth/login` : '/api/mobile-auth/login';
         
         const response = await fetch(loginUrl, {
