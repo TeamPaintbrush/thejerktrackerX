@@ -43,38 +43,28 @@ function useMobileAuth() {
   }, []);
   
   const signIn = async (email: string, password: string) => {
-    if (isMobile) {
-      // Mobile: Use Lambda API via MobileAuth
-      const platform = detectPlatform();
-      const result = await MobileAuth.signIn(email, password);
-      if (result.success) {
-        const currentUser = MobileAuth.getCurrentUser();
-        
-        // Update lastLoginPlatform
-        if (currentUser) {
-          const updatedUser = {
-            ...currentUser,
-            lastLoginPlatform: platform,
-            updatedAt: new Date().toISOString()
-          };
-          localStorage.setItem(`user_${currentUser.email}`, JSON.stringify(updatedUser));
-          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-          setUser(updatedUser);
-        } else {
-          setUser(currentUser);
-        }
-        return true;
+    // Use Lambda API for BOTH web and mobile (bypasses NextAuth redirect issues)
+    const platform = detectPlatform();
+    const result = await MobileAuth.signIn(email, password);
+    if (result.success) {
+      const currentUser = MobileAuth.getCurrentUser();
+      
+      // Update lastLoginPlatform
+      if (currentUser) {
+        const updatedUser = {
+          ...currentUser,
+          lastLoginPlatform: platform,
+          updatedAt: new Date().toISOString()
+        };
+        localStorage.setItem(`user_${currentUser.email}`, JSON.stringify(updatedUser));
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      } else {
+        setUser(currentUser);
       }
-      return false;
-    } else {
-      // Web: Use NextAuth
-      const result = await nextAuthSignIn('credentials', {
-        email,
-        password,
-        redirect: false, // Don't redirect automatically
-      });
-      return result?.ok === true;
+      return true;
     }
+    return false;
   };
   
   return { user, signIn };

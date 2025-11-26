@@ -73,31 +73,18 @@ function useMobileAuth() {
       const data = await response.json();
       
       if (response.ok && data.success) {
-        if (isMobile) {
-          // Mobile: Store user data locally
-          const newUser = {
-            ...data.user,
-            platform,
-            lastLoginPlatform: platform,
-          };
-          
-          // Store in localStorage for persistence
-          localStorage.setItem('mobile_auth_user', JSON.stringify(newUser));
-          
-          setUser(newUser);
-        } else {
-          // Web: Sign in with NextAuth after successful signup
-          const signInResult = await nextAuthSignIn('credentials', {
-            email,
-            password,
-            redirect: false,
-          });
-          
-          if (!signInResult?.ok) {
-            console.error('Failed to sign in after signup');
-            return false;
-          }
-        }
+        // Store user data locally for BOTH web and mobile (bypasses NextAuth)
+        const newUser = {
+          ...data.user,
+          platform,
+          lastLoginPlatform: platform,
+        };
+        
+        // Store in localStorage for persistence
+        localStorage.setItem('mobile_auth_user', JSON.stringify(newUser));
+        localStorage.setItem('currentUser', JSON.stringify(newUser));
+        
+        setUser(newUser);
         
         return true;
       } else {
