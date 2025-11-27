@@ -59,7 +59,7 @@ console.log('\n📋 Test 5: QR Code URLs');
 const testOrderId = 'test123';
 const basePath = process.env.NODE_ENV === 'production' ? '/thejerktrackerX' : '';
 const baseURL = window.location.origin;
-const qrUrl = `${baseURL}${basePath}/orders/${testOrderId}`;
+const qrUrl = `${baseURL}${basePath}/orders/${encodeURIComponent(testOrderId)}`;
 console.log('✅ Generated QR URL:', qrUrl);
 console.log('✅ URL structure valid:', qrUrl.includes('/orders/'));
 
@@ -75,12 +75,12 @@ console.log('1. Create a new order using the form above');
 console.log('2. Check that a QR code appears');
 console.log('3. Right-click the QR code and "Open image in new tab"');
 console.log('4. Use a QR scanner app to scan the code');
-console.log('5. Verify it opens the correct order page');
-console.log('6. Test the driver check-in form on that page');
+console.log('5. Verify it opens the order detail page (timeline + driver form)');
+console.log('6. Test the driver check-in workflow on that page');
 
 console.log('\n✅ QR Code functionality tests completed!');
 console.log('📱 All QR codes should link to: /orders/[orderId]');
-console.log('🚚 Drivers can scan codes to access pickup forms');
+console.log('🚚 Drivers can scan codes to access pickup forms + status timeline');
 console.log('📊 Order status updates are tracked in localStorage');
 
 // Add helper function to window for easy testing
@@ -96,8 +96,8 @@ console.log('📊 Order status updates are tracked in localStorage');
   
   console.log('📋 Test order data:', testOrderData);
   console.log('✅ QR code would be generated for order page');
-  console.log('📱 Driver would scan QR to access pickup form');
-  console.log('🔄 Status would update from "pending" to "picked_up"');
+  console.log('📱 Driver would scan QR to open the order detail page');
+  console.log('🔄 Status would update from "pending" to "picked_up" via the driver form');
 };
 
 console.log('\n💡 Run testQRFunctionality() in console for quick test');
